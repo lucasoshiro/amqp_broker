@@ -7,25 +7,32 @@ queue *new_queue(char *name) {
     q = malloc(sizeof(*q));
 
     strcpy(q->name, name);
+    q->first_node = NULL;
     q->last_node = NULL;
     q->size = 0;
     return q;
 }
 
-void q_push(queue *q, char *body) {
+void q_enqueue(queue *q, char *body) {
     q_node *n;
     int length = strlen(body);
 
     n = malloc(sizeof(*n) + length * sizeof(char));
-    n->parent = q->last_node;
+    n->parent = NULL;
     n->length = length;
     strcpy(n->body, body);
     
-    q->last_node = n;
+    if (q->first_node != NULL)
+        q->first_node->parent = n;
+
+    q->first_node = n;
+
+    if (q->last_node == NULL)
+        q->last_node = n;
     q->size += 1;
 }
 
-char *q_pop(queue *q) {
+char *q_dequeue(queue *q) {
     q_node *last = q->last_node;
     char *ret = NULL;
 
@@ -35,6 +42,9 @@ char *q_pop(queue *q) {
         strcpy(ret, last->body);
         q->last_node = last->parent;
         free(last);
+
+        if (q->first_node == last)
+            q->first_node = NULL;
 
         q->size -= 1;
     }

@@ -57,14 +57,14 @@ void create_queue(char *name) {
     node->q = q;
 }
 
-void push_to(char *name, char *body) {
+void enqueue_to(char *name, char *body) {
     queue *q = get_queue(name);
-    q_push(q, body);
+    q_enqueue(q, body);
 }
 
-char *pop_from(char *name) {
+char *dequeue_from(char *name) {
     queue *q = get_queue(name);    
-    char *s = q_pop(q);
+    char *s = q_dequeue(q);
     return s;
 }
 
