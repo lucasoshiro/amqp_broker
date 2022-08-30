@@ -53,3 +53,32 @@ void print_message_header(amqp_message_header header) {
         header.class, header.method
         );
 }
+
+int prepare_message(
+    class_id class,
+    method_id method,
+    uint16_t channel,
+    void *arguments,
+    size_t args_size,
+    char *dest
+    ) {
+
+    size_t header_size = sizeof(amqp_message_header);
+    char unparsed[128];
+
+    amqp_message_header header = {
+        .msg_type = METHOD,
+        .channel = channel,
+        .length = args_size + 4,
+        .class = class,
+        .method = method
+    };
+
+    unparse_message_header(header, unparsed);    
+
+    memcpy(dest, unparsed, header_size);
+    memcpy(dest + header_size, arguments, args_size);
+
+    dest[header_size + args_size] = 0xce;
+    return header_size + args_size + 1;
+}

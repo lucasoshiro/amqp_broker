@@ -10,6 +10,7 @@
 
 int connfd;
 char recvline[MAXLINE + 1];
+char sendline[MAXLINE + 1];
 
 // Actions
 
@@ -81,14 +82,6 @@ static machine_state action_wait() {
 }
 
 static machine_state action_header_received() {
-    amqp_message_header header = {
-        .msg_type = METHOD,
-        .channel = 0,
-        .length = 503,
-        .class = CONNECTION,
-        .method = CONNECTION_START
-    };
-
     char dummy_argument_str[] =
         "\x00\x09\x00\x00\x01\xd2\x0c\x63\x61\x70\x61\x62\x69\x6c\x69\x74"
         "\x69\x65\x73\x46\x00\x00\x00\xc7\x12\x70\x75\x62\x6c\x69\x73\x68"
@@ -121,21 +114,19 @@ static machine_state action_header_received() {
         "\x62\x69\x74\x4d\x51\x07\x76\x65\x72\x73\x69\x6f\x6e\x53\x00\x00"
         "\x00\x06\x33\x2e\x31\x30\x2e\x37\x00\x00\x00\x0e\x41\x4d\x51\x50"
         "\x4c\x41\x49\x4e\x20\x50\x4c\x41\x49\x4e\x00\x00\x00\x05\x65\x6e"
-        "\x5f\x55\x53\xce";
+        "\x5f\x55\x53";
 
-    char unparsed[128];
-
-    char joined[MAXLINE + 1];
-
-    unparse_message_header(header, unparsed);
-
-    memcpy(joined, unparsed, sizeof(amqp_message_header));
-    memcpy(joined + sizeof(amqp_message_header), dummy_argument_str, 500);
+    int n = prepare_message(
+        CONNECTION,
+        CONNECTION_START,
+        0,
+        dummy_argument_str,
+        499,
+        sendline
+        );
 
     printf("HEADER RECEIVED\n");
-
-    write(connfd, joined, sizeof(amqp_message_header) + 500);
-
+    write(connfd, sendline, n);
     return WAIT_START_OK;
 }
 
@@ -163,29 +154,19 @@ static machine_state action_wait_start_ok() {
 }
 
 static machine_state action_start_ok_received() {
-    amqp_message_header header = {
-        .msg_type = METHOD,
-        .channel = 0,
-        .length = 12,
-        .class = CONNECTION,
-        .method = CONNECTION_TUNE
-    };
+    char dummy_argument_str[] = "\x07\xff\x00\x02\x00\x00\x00\x3c";
 
-    char dummy_argument_str[] = "\x07\xff\x00\x02\x00\x00\x00\x3c\xce";
-
-    char unparsed[128];
-
-    char joined[MAXLINE + 1];
-
-    unparse_message_header(header, unparsed);
-
-    memcpy(joined, unparsed, sizeof(amqp_message_header));
-    memcpy(joined + sizeof(amqp_message_header), dummy_argument_str, 9);
+    int n = prepare_message(
+        CONNECTION,
+        CONNECTION_TUNE,
+        0,
+        dummy_argument_str,
+        8,
+        sendline
+        );
 
     printf("START OK RECEIVED\n");
-
-    write(connfd, joined, sizeof(amqp_message_header) + 9);
-
+    write(connfd, sendline, n);
     return WAIT_TUNE_OK;
 }
 
@@ -236,29 +217,19 @@ static machine_state action_wait_open_connection() {
 }
 
 static machine_state action_open_connection_received() {
-    amqp_message_header header = {
-        .msg_type = METHOD,
-        .channel = 0,
-        .length = 5,
-        .class = CONNECTION,
-        .method = CONNECTION_OPEN_OK
-    };
+    char dummy_argument_str[] = "\x00";
 
-    char dummy_argument_str[] = "\x00\xce";
-
-    char unparsed[128];
-
-    char joined[MAXLINE + 1];
+    int n = prepare_message(
+        CONNECTION,
+        CONNECTION_OPEN_OK,
+        0,
+        dummy_argument_str,
+        1,
+        sendline
+        );
 
     printf("OPEN CONNECTION RECEIVED\n");
-
-    unparse_message_header(header, unparsed);
-
-    memcpy(joined, unparsed, sizeof(amqp_message_header));
-    memcpy(joined + sizeof(amqp_message_header), dummy_argument_str, 2);
-
-    write(connfd, joined, sizeof(amqp_message_header) + 2);
-
+    write(connfd, sendline, n);
     return WAIT_OPEN_CHANNEL;
 }
 
@@ -286,29 +257,19 @@ static machine_state action_wait_open_channel() {
 }
 
 static machine_state action_open_channel_received() {
-    amqp_message_header header = {
-        .msg_type = METHOD,
-        .channel = 1,
-        .length = 8,
-        .class = CHANNEL,
-        .method = CHANNEL_OPEN_OK
-    };
+    char dummy_argument_str[] = "\x00\x00\x00\x00";
 
-    char dummy_argument_str[] = "\x00\x00\x00\x00\xce";
-
-    char unparsed[128];
-
-    char joined[MAXLINE + 1];
+    int n = prepare_message(
+        CHANNEL,
+        CHANNEL_OPEN_OK,
+        1,
+        dummy_argument_str,
+        4,
+        sendline
+        );
 
     printf("OPEN CHANNEL RECEIVED\n");
-
-    unparse_message_header(header, unparsed);
-
-    memcpy(joined, unparsed, sizeof(amqp_message_header));
-    memcpy(joined + sizeof(amqp_message_header), dummy_argument_str, 5);
-
-    write(connfd, joined, sizeof(amqp_message_header) + 5);
-
+    write(connfd, sendline, n);
     return FINISHED;
 }
 

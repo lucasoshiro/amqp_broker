@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "amqp_methods.h"
 #include "amqp_types.h"
 
 typedef struct {
@@ -28,3 +29,12 @@ int parse_message_header(char *s, ssize_t n, amqp_message_header *header);
 void unparse_message_header(amqp_message_header header, char *s);
 
 void print_message_header(amqp_message_header header);
+
+int prepare_message(
+    class_id class,
+    method_id method,
+    uint16_t channel,
+    void *arguments,
+    size_t args_size,
+    char *dest
+    );
