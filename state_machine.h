@@ -9,8 +9,22 @@ typedef enum machine_state {
     WAIT_TUNE_OK,
     WAIT_OPEN_CONNECTION,
     OPEN_CONNECTION_RECEIVED,
+    CLOSE_CONNECTION_RECEIVED,
+
+    // Channel
+    WAIT_OPEN_CHANNEL,
+    OPEN_CHANNEL_RECEIVED,
+    CLOSE_CHANNEL_RECEIVED,
+
+    // Functional
+    WAIT_FUNCTIONAL,
+    DECLARE_RECEIVED,
+
+    // Finish states
     FINISHED,
     FAIL,
+
+    // Count
     NUM_STATES
 } machine_state;
 

@@ -103,7 +103,7 @@ static machine_state action_wait_start_ok() {
 
     n = read(connfd, recvline, header.length - 4);
     n = read(connfd, recvline, 1);
-    
+
     return START_OK_RECEIVED;
 }
 
@@ -204,17 +204,86 @@ static machine_state action_open_connection_received() {
 
     write(connfd, joined, sizeof(amqp_message_header) + 2);
 
+    return WAIT_OPEN_CHANNEL;
+}
+
+static machine_state action_wait_open_channel() {
+    ssize_t n;
+    amqp_message_header header;
+
+    printf("WAIT OPEN CHANNEL\n");
+
+    n = read(connfd, recvline, sizeof(header));
+
+    if (parse_message_header(recvline, n, &header))
+        return FAIL;
+
+    print_message_header(header);
+
+    if (header.class != CHANNEL ||
+        header.method != CHANNEL_OPEN)
+        return FAIL;
+
+    n = read(connfd, recvline, header.length - 4);
+    n = read(connfd, recvline, 1);
+
+    return OPEN_CHANNEL_RECEIVED;
+}
+
+static machine_state action_open_channel_received() {
+    amqp_message_header header = {
+        .msg_type = METHOD,
+        .channel = 1,
+        .length = 8,
+        .class = CHANNEL,
+        .method = CHANNEL_OPEN_OK
+    };
+
+    char dummy_argument_str[] = "\x00\x00\x00\x00\xce";
+
+    char unparsed[128];
+
+    char joined[MAXLINE + 1];
+
+    printf("OPEN CHANNEL RECEIVED\n");
+
+    unparse_message_header(header, unparsed);
+
+    memcpy(joined, unparsed, sizeof(amqp_message_header));
+    memcpy(joined + sizeof(amqp_message_header), dummy_argument_str, 5);
+
+    write(connfd, joined, sizeof(amqp_message_header) + 5);
+
     return FINISHED;
 }
 
+static machine_state action_noop() {
+    return FAIL;
+}
+
 machine_state (*actions[NUM_STATES])() = {
+    // Connection
     action_wait,
     action_header_received,
     action_wait_start_ok,
     action_start_ok_received,
     action_wait_tune_ok,
     action_wait_open_connection,
-    action_open_connection_received
+    action_open_connection_received,
+    action_noop,
+
+    // Channel
+    action_wait_open_channel,
+    action_open_channel_received,
+    action_noop,
+
+    // Functional
+    action_noop,
+    action_noop,
+
+    // Finish
+    action_noop,
+    action_noop
 };
 
 void state_machine_main(int _connfd) {
