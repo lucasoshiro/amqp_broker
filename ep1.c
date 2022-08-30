@@ -40,6 +40,8 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "state_machine.h"
+
 #define LISTENQ 1
 #define MAXDATASIZE 100
 #define MAXLINE 4096
@@ -53,10 +55,6 @@ int main (int argc, char **argv) {
     /* Retorno da função fork para saber quem é o processo filho e
      * quem é o processo pai */
     pid_t childpid;
-    /* Armazena linhas recebidas do cliente */
-    char recvline[MAXLINE + 1];
-    /* Armazena o tamanho da string lida do cliente */
-    ssize_t n;
    
     if (argc != 2) {
         fprintf(stderr,"Uso: %s <Porta>\n",argv[0]);
@@ -154,15 +152,19 @@ int main (int argc, char **argv) {
             /* ========================================================= */
             /* TODO: É esta parte do código que terá que ser modificada
              * para que este servidor consiga interpretar comandos AMQP  */
-            while ((n=read(connfd, recvline, MAXLINE)) > 0) {
-                recvline[n]=0;
-                printf("[Cliente conectado no processo filho %d enviou:] ",getpid());
-                if ((fputs(recvline,stdout)) == EOF) {
-                    perror("fputs :( \n");
-                    exit(6);
-                }
-                write(connfd, recvline, strlen(recvline));
-            }
+
+            /* while ((n=read(connfd, recvline, MAXLINE)) > 0) { */
+            /*     recvline[n]=0; */
+            /*     printf("[Cliente conectado no processo filho %d enviou:] ",getpid()); */
+            /*     if ((fputs(recvline,stdout)) == EOF) { */
+            /*         perror("fputs :( \n"); */
+            /*         exit(6); */
+            /*     } */
+            /*     write(connfd, recvline, strlen(recvline)); */
+            /* } */
+
+            state_machine_main(connfd);
+
             /* ========================================================= */
             /* ========================================================= */
             /*                         EP1 FIM                           */
