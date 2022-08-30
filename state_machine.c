@@ -181,11 +181,28 @@ static machine_state action_wait_open_connection() {
 }
 
 static machine_state action_open_connection_received() {
-    char dummy_open_ok_str[] =
-        "\x01\x00\x00\x00\x00\x00\x05\x00\x0a\x00\x29\x00\xce";
+    amqp_message_header header = {
+        .msg_type = METHOD,
+        .channel = 0,
+        .length = 5,
+        .class = CONNECTION,
+        .method = CONNECTION_OPEN_OK
+    };
+
+    char dummy_argument_str[] = "\x00\xce";
+
+    char unparsed[128];
+
+    char joined[MAXLINE + 1];
 
     printf("OPEN CONNECTION RECEIVED\n");
-    write(connfd, dummy_open_ok_str, 13);
+
+    unparse_message_header(header, unparsed);
+
+    memcpy(joined, unparsed, sizeof(amqp_message_header));
+    memcpy(joined + sizeof(amqp_message_header), dummy_argument_str, 2);
+
+    write(connfd, joined, sizeof(amqp_message_header) + 2);
 
     return FINISHED;
 }
