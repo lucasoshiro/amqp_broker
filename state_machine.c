@@ -11,6 +11,61 @@
 int connfd;
 char recvline[MAXLINE + 1];
 
+// Actions
+
+// Connection
+static machine_state action_wait();
+static machine_state action_header_received();
+static machine_state action_wait_start_ok();
+static machine_state action_start_ok_received();
+static machine_state action_wait_tune_ok();
+static machine_state action_wait_open_connection();
+static machine_state action_open_connection_received();
+
+// Channel
+static machine_state action_wait_open_channel();
+static machine_state action_open_channel_received();
+
+// No operation
+static machine_state action_noop();
+
+machine_state (*actions[NUM_STATES])() = {
+    // Connection
+    action_wait,
+    action_header_received,
+    action_wait_start_ok,
+    action_start_ok_received,
+    action_wait_tune_ok,
+    action_wait_open_connection,
+    action_open_connection_received,
+    action_noop,
+
+    // Channel
+    action_wait_open_channel,
+    action_open_channel_received,
+    action_noop,
+
+    // Functional
+    action_noop,
+    action_noop,
+
+    // Finish
+    action_noop,
+    action_noop
+};
+
+void state_machine_main(int _connfd) {
+    machine_state m = WAIT;
+
+    connfd = _connfd;
+
+    while (m != FINISHED && m != FAIL) {
+        m = actions[m]();
+        if (m == FAIL)
+            printf("!!!!!!!!!!!! FAIL !!!!!!!!!!!!!!\n");
+    }
+}
+
 static machine_state action_wait() {
     ssize_t n;
     amqp_protocol_header header;
@@ -261,39 +316,3 @@ static machine_state action_noop() {
     return FAIL;
 }
 
-machine_state (*actions[NUM_STATES])() = {
-    // Connection
-    action_wait,
-    action_header_received,
-    action_wait_start_ok,
-    action_start_ok_received,
-    action_wait_tune_ok,
-    action_wait_open_connection,
-    action_open_connection_received,
-    action_noop,
-
-    // Channel
-    action_wait_open_channel,
-    action_open_channel_received,
-    action_noop,
-
-    // Functional
-    action_noop,
-    action_noop,
-
-    // Finish
-    action_noop,
-    action_noop
-};
-
-void state_machine_main(int _connfd) {
-    machine_state m = WAIT;
-
-    connfd = _connfd;
-
-    while (m != FINISHED && m != FAIL) {
-        m = actions[m]();
-        if (m == FAIL)
-            printf("!!!!!!!!!!!! FAIL !!!!!!!!!!!!!!\n");
-    }
-}
