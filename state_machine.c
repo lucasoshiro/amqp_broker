@@ -12,20 +12,20 @@ char recvline[MAXLINE + 1];
 
 static machine_state action_wait() {
     ssize_t n;
-    amqp_header header;
+    amqp_protocol_header header;
 
     printf("WAITING HEADER\n");
 
     n = read(connfd, recvline, MAXLINE);
 
-    if (parse_header(recvline, n, &header))
+    if (parse_protocol_header(recvline, n, &header))
         return FAIL;
 
     return HEADER_RECEIVED;
 }
 
 static machine_state action_header_received() {
-    char dummy_start_str[] = 
+    char dummy_start_str[] =
         "\x01\x00\x00\x00\x00\x01\xf7\x00\x0a\x00\x0a\x00\x09\x00\x00\x01"
         "\xd2\x0c\x63\x61\x70\x61\x62\x69\x6c\x69\x74\x69\x65\x73\x46\x00"
         "\x00\x00\xc7\x12\x70\x75\x62\x6c\x69\x73\x68\x65\x72\x5f\x63\x6f"
@@ -67,11 +67,16 @@ static machine_state action_header_received() {
 
 static machine_state action_wait_start_ok() {
     ssize_t n;
+    amqp_message_header header;
+
     printf("WAIT START OK\n");
 
     n = read(connfd, recvline, MAXLINE);
 
-    printf("received %ld bytes\n", n);
+    if (parse_message_header(recvline, n, &header))
+        return FAIL;
+
+    print_message_header(header);
 
     return START_OK_RECEIVED;
 }
@@ -89,22 +94,32 @@ static machine_state action_start_ok_received() {
 
 static machine_state action_wait_tune_ok() {
     ssize_t n;
+    amqp_message_header header;
+
     printf("WAIT TUNE OK\n");
 
     n = read(connfd, recvline, MAXLINE);
 
-    printf("received %ld bytes\n", n);
+    if (parse_message_header(recvline, n, &header))
+        return FAIL;
+
+    print_message_header(header);
 
     return WAIT_OPEN_CONNECTION;
 }
 
 static machine_state action_wait_open_connection() {
     ssize_t n;
+    amqp_message_header header;
+
     printf("WAIT OPEN CONNECTION\n");
 
     n = read(connfd, recvline, MAXLINE);
 
-    printf("received %ld bytes\n", n);
+    if (parse_message_header(recvline, n, &header))
+        return FAIL;
+
+    print_message_header(header);
 
     return OPEN_CONNECTION_RECEIVED;
 }
