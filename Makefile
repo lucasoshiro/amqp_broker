@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -O3 -Wall --pedantic
 
-ep1: ep1.c state_machine.o
+ep1: ep1.c state_machine.o amqp_message.o
 
 debug: debug.c queue_pool.o queue.o
 

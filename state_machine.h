@@ -10,6 +10,7 @@ typedef enum machine_state {
     WAIT_OPEN_CONNECTION,
     OPEN_CONNECTION_RECEIVED,
     FINISHED,
+    FAIL,
     NUM_STATES
 } machine_state;
 

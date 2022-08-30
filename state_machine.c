@@ -3,6 +3,8 @@
 #include <unistd.h>
 #include <string.h>
 
+#include "amqp_message.h"
+
 #define MAXLINE 4096
 
 int connfd;
@@ -10,11 +12,14 @@ char recvline[MAXLINE + 1];
 
 static machine_state action_wait() {
     ssize_t n;
+    amqp_header header;
+
     printf("WAITING HEADER\n");
 
     n = read(connfd, recvline, MAXLINE);
 
-    printf("received %ld bytes\n", n);
+    if (parse_header(recvline, n, &header))
+        return FAIL;
 
     return HEADER_RECEIVED;
 }
@@ -129,7 +134,9 @@ void state_machine_main(int _connfd) {
 
     connfd = _connfd;
 
-    while (m != FINISHED) {
+    while (m != FINISHED && m != FAIL) {
         m = actions[m]();
+        if (m == FAIL)
+            printf("!!!!!!!!!!!! FAIL !!!!!!!!!!!!!!\n");
     }
 }
