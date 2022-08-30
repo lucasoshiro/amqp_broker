@@ -32,6 +32,15 @@ int parse_message_header(char *s, ssize_t n, amqp_message_header *header) {
     return 0;
 }
 
+void unparse_message_header(amqp_message_header header, char *s) {
+    header.channel = htons(header.channel);
+    header.length = htonl(header.length);
+    header.class = htons(header.class);
+    header.method = htons(header.method);
+
+    memcpy(s, &header, sizeof(amqp_message_header));
+}
+
 void print_message_header(amqp_message_header header) {
     printf(
         "type: %02x\n"
