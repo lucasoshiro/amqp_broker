@@ -108,12 +108,28 @@ static machine_state action_wait_start_ok() {
 }
 
 static machine_state action_start_ok_received() {
-    char dummy_tune_str[] =
-        "\x01\x00\x00\x00\x00\x00\x0c\x00\x0a\x00\x1e\x07\xff\x00\x02\x00"
-        "\x00\x00\x3c\xce";
+    amqp_message_header header = {
+        .msg_type = METHOD,
+        .channel = 0,
+        .length = 12,
+        .class = CONNECTION,
+        .method = CONNECTION_TUNE
+    };
+
+    char dummy_argument_str[] = "\x07\xff\x00\x02\x00\x00\x00\x3c\xce";
+
+    char unparsed[128];
+
+    char joined[MAXLINE + 1];
+
+    unparse_message_header(header, unparsed);
+
+    memcpy(joined, unparsed, sizeof(amqp_message_header));
+    memcpy(joined + sizeof(amqp_message_header), dummy_argument_str, 9);
 
     printf("START OK RECEIVED\n");
-    write(connfd, dummy_tune_str, 20);
+
+    write(connfd, joined, sizeof(amqp_message_header) + 9);
 
     return WAIT_TUNE_OK;
 }

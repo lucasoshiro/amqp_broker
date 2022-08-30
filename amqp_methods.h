@@ -1,6 +1,13 @@
 #pragma once
 
-enum {
+enum msg_format {
+    METHOD = 1,
+    HEADER,
+    BODY,
+    HEARTBEAT
+};
+
+enum class {
     CONNECTION = 10,
     CHANNEL    = 20,
     EXCHANGE   = 40,
@@ -9,7 +16,7 @@ enum {
     TX         = 80
 };
 
-enum {
+enum method {
     CONNECTION_START = 10,
     CONNECTION_START_OK,
 
