@@ -26,4 +26,5 @@ int parse_protocol_header(char *s, ssize_t n, amqp_protocol_header *header);
 int parse_message_header(char *s, ssize_t n, amqp_message_header *header);
 
 /* char *unparse_message_header(amqp_message_header header); */
+
 void print_message_header(amqp_message_header header);

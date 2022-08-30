@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "amqp_message.h"
+#include "amqp_methods.h"
 
 #define MAXLINE 4096
 
@@ -16,7 +17,7 @@ static machine_state action_wait() {
 
     printf("WAITING HEADER\n");
 
-    n = read(connfd, recvline, MAXLINE);
+    n = read(connfd, recvline, sizeof(header));
 
     if (parse_protocol_header(recvline, n, &header))
         return FAIL;
@@ -71,13 +72,20 @@ static machine_state action_wait_start_ok() {
 
     printf("WAIT START OK\n");
 
-    n = read(connfd, recvline, MAXLINE);
+    n = read(connfd, recvline, sizeof(header));
 
     if (parse_message_header(recvline, n, &header))
         return FAIL;
 
     print_message_header(header);
 
+    if (header.class != CONNECTION ||
+        header.method != CONNECTION_START_OK)
+        return FAIL;
+
+    n = read(connfd, recvline, header.length - 4);
+    n = read(connfd, recvline, 1);
+    
     return START_OK_RECEIVED;
 }
 
@@ -98,12 +106,19 @@ static machine_state action_wait_tune_ok() {
 
     printf("WAIT TUNE OK\n");
 
-    n = read(connfd, recvline, MAXLINE);
+    n = read(connfd, recvline, sizeof(header));
 
     if (parse_message_header(recvline, n, &header))
         return FAIL;
 
     print_message_header(header);
+
+    if (header.class != CONNECTION ||
+        header.method != CONNECTION_TUNE_OK)
+        return FAIL;
+
+    n = read(connfd, recvline, header.length - 4);
+    n = read(connfd, recvline, 1);
 
     return WAIT_OPEN_CONNECTION;
 }
@@ -114,12 +129,19 @@ static machine_state action_wait_open_connection() {
 
     printf("WAIT OPEN CONNECTION\n");
 
-    n = read(connfd, recvline, MAXLINE);
+    n = read(connfd, recvline, sizeof(header));
 
     if (parse_message_header(recvline, n, &header))
         return FAIL;
 
     print_message_header(header);
+
+    if (header.class != CONNECTION ||
+        header.method != CONNECTION_OPEN)
+        return FAIL;
+
+    n = read(connfd, recvline, header.length - 4);
+    n = read(connfd, recvline, 1);
 
     return OPEN_CONNECTION_RECEIVED;
 }
