@@ -17,6 +17,7 @@ enum class {
 };
 
 enum method {
+    // Connection
     CONNECTION_START = 10,
     CONNECTION_START_OK,
 
@@ -29,9 +30,14 @@ enum method {
     CONNECTION_CLOSE = 50,
     CONNECTION_CLOSE_OK,
 
+    // Channel
     CHANNEL_OPEN = 10,
     CHANNEL_OPEN_OK,
 
     CHANNEL_CLOSE = 40,
-    CHANNEL_CLOSE_OK
+    CHANNEL_CLOSE_OK,
+
+    // Queue
+    QUEUE_DECLARE = 10,
+    QUEUE_DECLARE_OK
 };

@@ -18,7 +18,7 @@ typedef enum machine_state {
 
     // Functional
     WAIT_FUNCTIONAL,
-    DECLARE_RECEIVED,
+    QUEUE_DECLARE_RECEIVED,
 
     // Finish states
     FINISHED,

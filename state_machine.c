@@ -27,6 +27,9 @@ static machine_state action_open_connection_received();
 static machine_state action_wait_open_channel();
 static machine_state action_open_channel_received();
 
+// Functional
+static machine_state action_wait_functional();
+
 // No operation
 static machine_state action_noop();
 
@@ -47,7 +50,7 @@ machine_state (*actions[NUM_STATES])() = {
     action_noop,
 
     // Functional
-    action_noop,
+    action_wait_functional,
     action_noop,
 
     // Finish
@@ -270,10 +273,38 @@ static machine_state action_open_channel_received() {
 
     printf("OPEN CHANNEL RECEIVED\n");
     write(connfd, sendline, n);
-    return FINISHED;
+    return WAIT_FUNCTIONAL;
+}
+
+static machine_state action_wait_functional() {
+    ssize_t n;
+    amqp_message_header header;
+    machine_state next_state = FAIL;
+
+    printf("WAIT FUNCTIONAL\n");
+
+    n = read(connfd, recvline, sizeof(header));
+
+    if (parse_message_header(recvline, n, &header))
+        return FAIL;
+
+    print_message_header(header);
+
+    n = read(connfd, recvline, header.length - 4);
+    n = read(connfd, recvline, 1);
+
+    switch (header.class) {
+    case QUEUE:
+        switch (header.method) {
+        case QUEUE_DECLARE:
+            next_state = QUEUE_DECLARE_RECEIVED;
+        }
+        break;
+    }
+
+    return next_state;
 }
 
 static machine_state action_noop() {
     return FAIL;
 }
-
