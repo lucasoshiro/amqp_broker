@@ -33,7 +33,10 @@ static machine_state action_close_channel_received();
 // Functional
 static machine_state action_wait_functional();
 static machine_state action_queue_declare_received();
+
+// Queue
 static machine_state action_basic_publish_received();
+static machine_state action_wait_publish_content_header();
 
 // No operation
 static machine_state action_noop();
@@ -57,7 +60,11 @@ machine_state (*actions[NUM_STATES])() = {
     // Functional
     action_wait_functional,
     action_queue_declare_received,
+
+    // Queue
     action_basic_publish_received,
+    action_wait_publish_content_header,
+    action_noop,
 
     // Finish
     action_noop,
@@ -391,9 +398,29 @@ static machine_state action_queue_declare_received() {
     return WAIT_FUNCTIONAL;
 }
 
+static machine_state action_wait_publish_content_header() {
+    ssize_t n;
+    amqp_message_header message_header;
+    amqp_content_header *content_header;
+
+    printf("WAIT PUBLISH HEADER\n");
+
+    n = read(connfd, recvline, sizeof(message_header));
+    if (parse_message_header(recvline, n, &message_header)) return FAIL;
+    print_message_header(message_header);
+
+    n = read(connfd, recvline, message_header.length);
+    content_header = parse_content_header(recvline, n);
+    n = read(connfd, recvline, 1);
+
+    free(content_header);
+
+    return FINISHED;
+}
+
 static machine_state action_basic_publish_received() {
     printf("BASIC PUBLISH RECEIVED\n");
-    return WAIT_FUNCTIONAL;
+    return WAIT_PUBLISH_CONTENT_HEADER;
 }
 
 static machine_state action_noop() {

@@ -89,6 +89,23 @@ amqp_method *parse_method(char *s, ssize_t n) {
     return method;
 }
 
+amqp_content_header *parse_content_header(char *s, ssize_t n) {
+    ssize_t header_size = sizeof(amqp_content_header_header);
+    amqp_content_header *content_header;
+
+    if (n < header_size) return NULL;
+
+    content_header = malloc(n);
+
+    memcpy(content_header, s, header_size);
+
+    content_header->header.class = ntohs(content_header->header.class);
+    content_header->header.weight = ntohs(content_header->header.weight);
+    content_header->header.body_size = ntohll(content_header->header.body_size);
+
+    return content_header;
+}
+
 int prepare_message(
     class_id class,
     method_id method,
