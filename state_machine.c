@@ -22,6 +22,7 @@ static machine_state action_start_ok_received();
 static machine_state action_wait_tune_ok();
 static machine_state action_wait_open_connection();
 static machine_state action_open_connection_received();
+static machine_state action_close_connection_received();
 
 // Channel
 static machine_state action_wait_open_channel();
@@ -44,7 +45,7 @@ machine_state (*actions[NUM_STATES])() = {
     action_wait_tune_ok,
     action_wait_open_connection,
     action_open_connection_received,
-    action_noop,
+    action_close_connection_received,
 
     // Channel
     action_wait_open_channel,
@@ -238,9 +239,27 @@ static machine_state action_open_connection_received() {
     return WAIT_OPEN_CHANNEL;
 }
 
+static machine_state action_close_connection_received() {
+    char dummy_argument_str[] = "";
+
+    int n = prepare_message(
+        CONNECTION,
+        CONNECTION_CLOSE_OK,
+        0,
+        dummy_argument_str,
+        0,
+        sendline
+        );
+
+    printf("CLOSE CONNECTION RECEIVED\n");
+    write(connfd, sendline, n);
+    return FINISHED;
+}
+
 static machine_state action_wait_open_channel() {
     ssize_t n;
     amqp_message_header header;
+    machine_state next_state = FAIL;
 
     printf("WAIT OPEN CHANNEL\n");
 
@@ -251,14 +270,26 @@ static machine_state action_wait_open_channel() {
 
     print_message_header(header);
 
-    if (header.class != CHANNEL ||
-        header.method != CHANNEL_OPEN)
-        return FAIL;
+    switch (header.class) {
+    case CHANNEL:
+        switch (header.method) {
+        case CHANNEL_OPEN:
+            next_state = OPEN_CHANNEL_RECEIVED;
+            break;
+        }
+
+    case CONNECTION:
+        switch (header.method) {
+        case CONNECTION_CLOSE:
+            next_state = CLOSE_CONNECTION_RECEIVED;
+            break;
+        }
+    }
 
     n = read(connfd, recvline, header.length - 4);
     n = read(connfd, recvline, 1);
 
-    return OPEN_CHANNEL_RECEIVED;
+    return next_state;
 }
 
 static machine_state action_open_channel_received() {
@@ -276,6 +307,23 @@ static machine_state action_open_channel_received() {
     printf("OPEN CHANNEL RECEIVED\n");
     write(connfd, sendline, n);
     return WAIT_FUNCTIONAL;
+}
+
+static machine_state action_close_channel_received() {
+    char dummy_argument_str[] = "";
+
+    int n = prepare_message(
+        CHANNEL,
+        CHANNEL_CLOSE_OK,
+        1,
+        dummy_argument_str,
+        0,
+        sendline
+        );
+
+    printf("CLOSE CHANNEL RECEIVED\n");
+    write(connfd, sendline, n);
+    return WAIT_OPEN_CHANNEL;
 }
 
 static machine_state action_wait_functional() {
@@ -312,23 +360,6 @@ static machine_state action_wait_functional() {
     }
 
     return next_state;
-}
-
-static machine_state action_close_channel_received() {
-    char dummy_argument_str[] = "";
-
-    int n = prepare_message(
-        CHANNEL,
-        CHANNEL_CLOSE_OK,
-        1,
-        dummy_argument_str,
-        0,
-        sendline
-        );
-
-    printf("CLOSE CHANNEL RECEIVED\n");
-    write(connfd, sendline, n);
-    return FINISHED;
 }
 
 static machine_state action_queue_declare_received() {
