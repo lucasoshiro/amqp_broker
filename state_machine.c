@@ -29,6 +29,7 @@ static machine_state action_open_channel_received();
 
 // Functional
 static machine_state action_wait_functional();
+static machine_state action_queue_declare_received();
 
 // No operation
 static machine_state action_noop();
@@ -51,7 +52,7 @@ machine_state (*actions[NUM_STATES])() = {
 
     // Functional
     action_wait_functional,
-    action_noop,
+    action_queue_declare_received,
 
     // Finish
     action_noop,
@@ -303,6 +304,23 @@ static machine_state action_wait_functional() {
     }
 
     return next_state;
+}
+
+static machine_state action_queue_declare_received() {
+    char dummy_argument_str[] = "\x07\x63\x68\x65\x65\x74\x6f\x73\x00\x00\x00\x00\x00\x00\x00\x00";
+
+    int n = prepare_message(
+        QUEUE,
+        QUEUE_DECLARE_OK,
+        1,
+        dummy_argument_str,
+        16,
+        sendline
+        );
+
+    printf("QUEUE DECLARE RECEIVED\n");
+    write(connfd, sendline, n);
+    return FINISHED;
 }
 
 static machine_state action_noop() {
