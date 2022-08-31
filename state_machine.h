@@ -25,6 +25,12 @@ typedef enum machine_state {
     WAIT_PUBLISH_CONTENT_HEADER,
     WAIT_PUBLISH_CONTENT,
 
+    // Consume
+    BASIC_CONSUME_RECEIVED,
+    WAIT_VALUE_DEQUEUE,
+    VALUE_DEQUE_RECEIVED,
+    WAIT_ACK,
+
     // Finish states
     FINISHED,
     FAIL,

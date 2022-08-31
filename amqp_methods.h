@@ -42,5 +42,9 @@ enum method {
     QUEUE_DECLARE_OK,
 
     // Basic
-    BASIC_PUBLISH = 40
+    BASIC_CONSUME = 20,
+    BASIC_CONSUME_OK,
+    BASIC_PUBLISH = 40,
+    BASIC_DELIVER = 60,
+    BASIC_ACK     = 80
 };

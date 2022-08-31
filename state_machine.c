@@ -35,10 +35,13 @@ static machine_state action_close_channel_received();
 static machine_state action_wait_functional();
 static machine_state action_queue_declare_received();
 
-// Queue
+// Publish
 static machine_state action_basic_publish_received();
 static machine_state action_wait_publish_content_header();
 static machine_state action_wait_publish_content();
+
+// Consume
+static machine_state action_basic_consume_received();
 
 // No operation
 static machine_state action_noop();
@@ -63,10 +66,16 @@ machine_state (*actions[NUM_STATES])() = {
     action_wait_functional,
     action_queue_declare_received,
 
-    // Queue
+    // Publish
     action_basic_publish_received,
     action_wait_publish_content_header,
     action_wait_publish_content,
+
+    // Consume
+    action_basic_consume_received,
+    action_noop,
+    action_noop,
+    action_noop,
 
     // Finish
     action_noop,
@@ -375,6 +384,9 @@ static machine_state action_wait_functional() {
         case BASIC_PUBLISH:
             next_state = BASIC_PUBLISH_RECEIVED;
             break;
+        case BASIC_CONSUME:
+            next_state = BASIC_CONSUME_RECEIVED;
+            break;
         }
     }
 
@@ -455,6 +467,23 @@ static machine_state action_wait_publish_content() {
 
     n = read(connfd, recvline, 1);
     return next_state;
+}
+
+static machine_state action_basic_consume_received() {
+    char dummy_argument_str[] = "\x00\x00\x00\x00\x00\x00\x00\x01\x00";
+
+    int n = prepare_message(
+        BASIC,
+        BASIC_CONSUME_OK,
+        1,
+        dummy_argument_str,
+        13,
+        sendline
+        );
+
+    log_state("BASIC CONSUME RECEIVED");    
+    write(connfd, sendline, n);
+    return FINISHED;
 }
 
 static machine_state action_noop() {
