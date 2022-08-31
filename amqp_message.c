@@ -1,6 +1,7 @@
 #include "amqp_message.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <arpa/inet.h>
 
 const amqp_protocol_header default_amqp_header = {
@@ -70,6 +71,22 @@ void print_method_header(amqp_method_header header) {
         "method: %04x\n",
         header.class, header.method
         );
+}
+
+amqp_method *parse_method(char *s, ssize_t n) {
+    ssize_t header_size = sizeof(amqp_method_header);
+    amqp_method *method;
+
+    if (n < header_size) return NULL;
+
+    method = malloc(n);
+
+    memcpy(method, s, header_size);
+
+    method->header.class = ntohs(method->header.class);
+    method->header.method = ntohs(method->header.method);
+
+    return method;
 }
 
 int prepare_message(

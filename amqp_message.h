@@ -20,26 +20,27 @@ typedef struct {
     uint32_t length;
 } __attribute__((packed)) amqp_message_header;
 
-
 typedef struct {
     class_id class;
     method_id method;
 } __attribute__((packed)) amqp_method_header;
 
+typedef struct {
+    amqp_method_header header;
+    char arguments[1];
+} __attribute__((packed)) amqp_method;
 
 int parse_protocol_header(char *s, ssize_t n, amqp_protocol_header *header);
 
 int parse_message_header(char *s, ssize_t n, amqp_message_header *header);
-
 void unparse_message_header(amqp_message_header header, char *s);
-
 void print_message_header(amqp_message_header header);
 
 int parse_method_header(char *s, ssize_t n, amqp_method_header *header);
-
 void unparse_method_header(amqp_method_header header, char *s);
-
 void print_method_header(amqp_method_header header);
+
+amqp_method *parse_method(char *s, ssize_t n);
 
 int prepare_message(
     class_id class,
