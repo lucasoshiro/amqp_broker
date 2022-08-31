@@ -2,7 +2,7 @@
 
 enum msg_format {
     METHOD = 1,
-    HEADER,
+    CONTENT_HEADER,
     BODY,
     HEARTBEAT
 };
@@ -39,5 +39,8 @@ enum method {
 
     // Queue
     QUEUE_DECLARE = 10,
-    QUEUE_DECLARE_OK
+    QUEUE_DECLARE_OK,
+
+    // Basic
+    BASIC_PUBLISH = 40
 };

@@ -32,6 +32,7 @@ static machine_state action_close_channel_received();
 // Functional
 static machine_state action_wait_functional();
 static machine_state action_queue_declare_received();
+static machine_state action_basic_publish_received();
 
 // No operation
 static machine_state action_noop();
@@ -55,6 +56,7 @@ machine_state (*actions[NUM_STATES])() = {
     // Functional
     action_wait_functional,
     action_queue_declare_received,
+    action_basic_publish_received,
 
     // Finish
     action_noop,
@@ -355,8 +357,16 @@ static machine_state action_wait_functional() {
         switch (header.method) {
         case QUEUE_DECLARE:
             next_state = QUEUE_DECLARE_RECEIVED;
+            break;
         }
         break;
+
+    case BASIC:
+        switch (header.method) {
+        case BASIC_PUBLISH:
+            next_state = BASIC_PUBLISH_RECEIVED;
+            break;
+        }
     }
 
     return next_state;
@@ -376,6 +386,11 @@ static machine_state action_queue_declare_received() {
 
     printf("QUEUE DECLARE RECEIVED\n");
     write(connfd, sendline, n);
+    return WAIT_FUNCTIONAL;
+}
+
+static machine_state action_basic_publish_received() {
+    printf("BASIC PUBLISH RECEIVED\n");
     return WAIT_FUNCTIONAL;
 }
 
