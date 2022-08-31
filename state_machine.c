@@ -26,6 +26,7 @@ static machine_state action_open_connection_received();
 // Channel
 static machine_state action_wait_open_channel();
 static machine_state action_open_channel_received();
+static machine_state action_close_channel_received();
 
 // Functional
 static machine_state action_wait_functional();
@@ -48,7 +49,7 @@ machine_state (*actions[NUM_STATES])() = {
     // Channel
     action_wait_open_channel,
     action_open_channel_received,
-    action_noop,
+    action_close_channel_received,
 
     // Functional
     action_wait_functional,
@@ -295,6 +296,13 @@ static machine_state action_wait_functional() {
     n = read(connfd, recvline, 1);
 
     switch (header.class) {
+    case CHANNEL:
+        switch (header.method) {
+        case CHANNEL_CLOSE:
+            next_state = CLOSE_CHANNEL_RECEIVED;
+            break;
+        }
+
     case QUEUE:
         switch (header.method) {
         case QUEUE_DECLARE:
@@ -304,6 +312,23 @@ static machine_state action_wait_functional() {
     }
 
     return next_state;
+}
+
+static machine_state action_close_channel_received() {
+    char dummy_argument_str[] = "";
+
+    int n = prepare_message(
+        CHANNEL,
+        CHANNEL_CLOSE_OK,
+        1,
+        dummy_argument_str,
+        0,
+        sendline
+        );
+
+    printf("CLOSE CHANNEL RECEIVED\n");
+    write(connfd, sendline, n);
+    return FINISHED;
 }
 
 static machine_state action_queue_declare_received() {
@@ -320,7 +345,7 @@ static machine_state action_queue_declare_received() {
 
     printf("QUEUE DECLARE RECEIVED\n");
     write(connfd, sendline, n);
-    return FINISHED;
+    return WAIT_FUNCTIONAL;
 }
 
 static machine_state action_noop() {
