@@ -27,16 +27,12 @@ int parse_message_header(char *s, ssize_t n, amqp_message_header *header) {
 
     header->channel = ntohs(header->channel);
     header->length = ntohl(header->length);
-    header->class = ntohs(header->class);
-    header->method = ntohs(header->method);
     return 0;
 }
 
 void unparse_message_header(amqp_message_header header, char *s) {
     header.channel = htons(header.channel);
     header.length = htonl(header.length);
-    header.class = htons(header.class);
-    header.method = htons(header.method);
 
     memcpy(s, &header, sizeof(amqp_message_header));
 }
@@ -45,11 +41,33 @@ void print_message_header(amqp_message_header header) {
     printf(
         "type: %02x\n"
         "channel: %04x\n"
-        "length: %08x\n"
-        "l2: %x\n"
+        "length: %08x\n",
+        header.msg_type, header.channel, header.length
+        );
+}
+
+int parse_method_header(char *s, ssize_t n, amqp_method_header *header) {
+    ssize_t header_size = sizeof(amqp_method_header);
+
+    if (n < header_size) return 1;
+    memcpy(header, s, header_size);
+
+    header->class = ntohs(header->class);
+    header->method = ntohs(header->method);
+    return 0;
+}
+
+void unparse_method_header(amqp_method_header header, char *s) {
+    header.class = htons(header.class);
+    header.method = htons(header.method);
+
+    memcpy(s, &header, sizeof(amqp_method_header));
+}
+
+void print_method_header(amqp_method_header header) {
+    printf(
         "class: %04x\n"
         "method: %04x\n",
-        header.msg_type, header.channel, header.length, ntohl(header.length),
         header.class, header.method
         );
 }
@@ -63,18 +81,25 @@ int prepare_message(
     char *dest
     ) {
 
-    size_t header_size = sizeof(amqp_message_header);
+    size_t message_header_size = sizeof(amqp_message_header);
+    size_t method_header_size = sizeof(amqp_method_header);
+    size_t header_size = message_header_size + method_header_size;
+
     char unparsed[128];
 
-    amqp_message_header header = {
+    amqp_message_header message_header = {
         .msg_type = METHOD,
         .channel = channel,
-        .length = args_size + 4,
+        .length = args_size + 4
+    };
+
+    amqp_method_header method_header = {
         .class = class,
         .method = method
     };
 
-    unparse_message_header(header, unparsed);    
+    unparse_message_header(message_header, unparsed);
+    unparse_method_header(method_header, unparsed + message_header_size);
 
     memcpy(dest, unparsed, header_size);
     memcpy(dest + header_size, arguments, args_size);
