@@ -38,6 +38,7 @@ static machine_state action_queue_declare_received();
 // Queue
 static machine_state action_basic_publish_received();
 static machine_state action_wait_publish_content_header();
+static machine_state action_wait_publish_content();
 
 // No operation
 static machine_state action_noop();
@@ -65,7 +66,7 @@ machine_state (*actions[NUM_STATES])() = {
     // Queue
     action_basic_publish_received,
     action_wait_publish_content_header,
-    action_noop,
+    action_wait_publish_content,
 
     // Finish
     action_noop,
@@ -399,6 +400,11 @@ static machine_state action_queue_declare_received() {
     return WAIT_FUNCTIONAL;
 }
 
+static machine_state action_basic_publish_received() {
+    log_state("BASIC PUBLISH RECEIVED");
+    return WAIT_PUBLISH_CONTENT_HEADER;
+}
+
 static machine_state action_wait_publish_content_header() {
     ssize_t n;
     amqp_message_header message_header;
@@ -416,12 +422,39 @@ static machine_state action_wait_publish_content_header() {
 
     free(content_header);
 
-    return FINISHED;
+    return WAIT_PUBLISH_CONTENT;
 }
 
-static machine_state action_basic_publish_received() {
-    log_state("BASIC PUBLISH RECEIVED");
-    return WAIT_PUBLISH_CONTENT_HEADER;
+static machine_state action_wait_publish_content() {
+    ssize_t n;
+    amqp_message_header message_header;
+    amqp_method *method;
+    machine_state next_state = FAIL;
+    log_state("WAIT PUBLISH CONTENT");
+
+    n = read(connfd, recvline, sizeof(message_header));
+    if (parse_message_header(recvline, n, &message_header)) return FAIL;
+    log_message_header('C', message_header);
+
+    n = read(connfd, recvline, message_header.length);
+
+    switch (message_header.msg_type) {
+    case METHOD:
+        method = parse_method(recvline, n);
+        next_state =
+            (method->header.class == CHANNEL &&
+             method->header.method == CHANNEL_CLOSE)
+            ? CLOSE_CHANNEL_RECEIVED
+            : FAIL;
+        free(method);
+        break;
+    case BODY:
+        next_state = WAIT_PUBLISH_CONTENT;
+        break;
+    }
+
+    n = read(connfd, recvline, 1);
+    return next_state;
 }
 
 static machine_state action_noop() {
