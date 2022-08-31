@@ -6,6 +6,7 @@
 
 #include "amqp_message.h"
 #include "amqp_methods.h"
+#include "log.h"
 
 #define MAXLINE 4096
 
@@ -87,7 +88,7 @@ static machine_state action_wait() {
     ssize_t n;
     amqp_protocol_header header;
 
-    printf("WAITING HEADER\n");
+    log_state("WAITING HEADER");
 
     n = read(connfd, recvline, sizeof(header));
 
@@ -141,7 +142,7 @@ static machine_state action_header_received() {
         sendline
         );
 
-    printf("HEADER RECEIVED\n");
+    log_state("HEADER RECEIVED");
     write(connfd, sendline, n);
     return WAIT_START_OK;
 }
@@ -151,11 +152,11 @@ static machine_state action_wait_start_ok() {
     amqp_message_header message_header;
     amqp_method *method;
 
-    printf("WAIT START OK\n");
+    log_state("WAIT START OK");
 
     n = read(connfd, recvline, sizeof(message_header));
     if (parse_message_header(recvline, n, &message_header)) return FAIL;
-    print_message_header(message_header);
+    log_message_header('C', message_header);
 
     n = read(connfd, recvline, message_header.length);
     method = parse_method(recvline, n);
@@ -181,7 +182,7 @@ static machine_state action_start_ok_received() {
         sendline
         );
 
-    printf("START OK RECEIVED\n");
+    log_state("START OK RECEIVED");
     write(connfd, sendline, n);
     return WAIT_TUNE_OK;
 }
@@ -191,11 +192,11 @@ static machine_state action_wait_tune_ok() {
     amqp_message_header message_header;
     amqp_method *method;
 
-    printf("WAIT TUNE OK\n");
+    log_state("WAIT TUNE OK");
 
     n = read(connfd, recvline, sizeof(message_header));
     if (parse_message_header(recvline, n, &message_header)) return FAIL;
-    print_message_header(message_header);
+    log_message_header('C', message_header);
 
     n = read(connfd, recvline, message_header.length);
     method = parse_method(recvline, n);
@@ -214,11 +215,11 @@ static machine_state action_wait_open_connection() {
     amqp_message_header message_header;
     amqp_method *method;
 
-    printf("WAIT OPEN CONNECTION\n");
+    log_state("WAIT OPEN CONNECTION");
 
     n = read(connfd, recvline, sizeof(message_header));
     if (parse_message_header(recvline, n, &message_header)) return FAIL;
-    print_message_header(message_header);
+    log_message_header('C', message_header);
 
     n = read(connfd, recvline, message_header.length);
     method = parse_method(recvline, n);
@@ -244,7 +245,7 @@ static machine_state action_open_connection_received() {
         sendline
         );
 
-    printf("OPEN CONNECTION RECEIVED\n");
+    log_state("OPEN CONNECTION RECEIVED");
     write(connfd, sendline, n);
     return WAIT_OPEN_CHANNEL;
 }
@@ -261,7 +262,7 @@ static machine_state action_close_connection_received() {
         sendline
         );
 
-    printf("CLOSE CONNECTION RECEIVED\n");
+    log_state("CLOSE CONNECTION RECEIVED");
     write(connfd, sendline, n);
     return FINISHED;
 }
@@ -272,11 +273,11 @@ static machine_state action_wait_open_channel() {
     amqp_method *method;
     machine_state next_state = FAIL;
 
-    printf("WAIT OPEN CHANNEL\n");
+    log_state("WAIT OPEN CHANNEL");
 
     n = read(connfd, recvline, sizeof(message_header));
     if (parse_message_header(recvline, n, &message_header)) return FAIL;
-    print_message_header(message_header);
+    log_message_header('C', message_header);
 
     n = read(connfd, recvline, message_header.length);
     method = parse_method(recvline, n);
@@ -314,7 +315,7 @@ static machine_state action_open_channel_received() {
         sendline
         );
 
-    printf("OPEN CHANNEL RECEIVED\n");
+    log_state("OPEN CHANNEL RECEIVED");
     write(connfd, sendline, n);
     return WAIT_FUNCTIONAL;
 }
@@ -331,7 +332,7 @@ static machine_state action_close_channel_received() {
         sendline
         );
 
-    printf("CLOSE CHANNEL RECEIVED\n");
+    log_state("CLOSE CHANNEL RECEIVED");
     write(connfd, sendline, n);
     return WAIT_OPEN_CHANNEL;
 }
@@ -342,11 +343,11 @@ static machine_state action_wait_functional() {
     amqp_method *method;
     machine_state next_state = FAIL;
 
-    printf("WAIT FUNCTIONAL\n");
+    log_state("WAIT FUNCTIONAL");
 
     n = read(connfd, recvline, sizeof(message_header));
     if (parse_message_header(recvline, n, &message_header)) return FAIL;
-    print_message_header(message_header);
+    log_message_header('C', message_header);
 
     n = read(connfd, recvline, message_header.length);
     method = parse_method(recvline, n);
@@ -393,7 +394,7 @@ static machine_state action_queue_declare_received() {
         sendline
         );
 
-    printf("QUEUE DECLARE RECEIVED\n");
+    log_state("QUEUE DECLARE RECEIVED");
     write(connfd, sendline, n);
     return WAIT_FUNCTIONAL;
 }
@@ -403,11 +404,11 @@ static machine_state action_wait_publish_content_header() {
     amqp_message_header message_header;
     amqp_content_header *content_header;
 
-    printf("WAIT PUBLISH HEADER\n");
+    log_state("WAIT PUBLISH HEADER");
 
     n = read(connfd, recvline, sizeof(message_header));
     if (parse_message_header(recvline, n, &message_header)) return FAIL;
-    print_message_header(message_header);
+    log_message_header('C', message_header);
 
     n = read(connfd, recvline, message_header.length);
     content_header = parse_content_header(recvline, n);
@@ -419,7 +420,7 @@ static machine_state action_wait_publish_content_header() {
 }
 
 static machine_state action_basic_publish_received() {
-    printf("BASIC PUBLISH RECEIVED\n");
+    log_state("BASIC PUBLISH RECEIVED");
     return WAIT_PUBLISH_CONTENT_HEADER;
 }
 

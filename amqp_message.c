@@ -1,6 +1,5 @@
 #include "amqp_message.h"
 
-#include <stdio.h>
 #include <stdlib.h>
 #include <arpa/inet.h>
 
@@ -38,15 +37,6 @@ void unparse_message_header(amqp_message_header header, char *s) {
     memcpy(s, &header, sizeof(amqp_message_header));
 }
 
-void print_message_header(amqp_message_header header) {
-    printf(
-        "type: %02x\n"
-        "channel: %04x\n"
-        "length: %08x\n",
-        header.msg_type, header.channel, header.length
-        );
-}
-
 int parse_method_header(char *s, ssize_t n, amqp_method_header *header) {
     ssize_t header_size = sizeof(amqp_method_header);
 
@@ -63,14 +53,6 @@ void unparse_method_header(amqp_method_header header, char *s) {
     header.method = htons(header.method);
 
     memcpy(s, &header, sizeof(amqp_method_header));
-}
-
-void print_method_header(amqp_method_header header) {
-    printf(
-        "class: %04x\n"
-        "method: %04x\n",
-        header.class, header.method
-        );
 }
 
 amqp_method *parse_method(char *s, ssize_t n) {
