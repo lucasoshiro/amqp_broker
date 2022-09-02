@@ -42,21 +42,21 @@ typedef struct {
     char property_list[1];
 } __attribute__((packed)) amqp_content_header;
 
-int parse_protocol_header(char *s, ssize_t n, amqp_protocol_header *header);
+int parse_protocol_header(char *s, size_t n, amqp_protocol_header *header);
 
-int parse_message_header(char *s, ssize_t n, amqp_message_header *header);
+int parse_message_header(char *s, size_t n, amqp_message_header *header);
 void unparse_message_header(amqp_message_header header, char *s);
 
-int parse_method_header(char *s, ssize_t n, amqp_method_header *header);
+int parse_method_header(char *s, size_t n, amqp_method_header *header);
 void unparse_method_header(amqp_method_header header, char *s);
 
 void unparse_content_header_header(
     amqp_content_header_header header,
     char *s
     );
-amqp_method *parse_method(char *s, ssize_t n);
+amqp_method *parse_method(char *s, size_t n);
 
-amqp_content_header *parse_content_header(char *s, ssize_t n);
+amqp_content_header *parse_content_header(char *s, size_t n);
 
 int prepare_message(
     class_id class,

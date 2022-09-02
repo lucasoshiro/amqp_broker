@@ -97,7 +97,7 @@ void state_machine_main(int _connfd) {
 }
 
 static machine_state action_wait() {
-    ssize_t n;
+    size_t n;
     amqp_protocol_header header;
 
     log_state("WAITING HEADER");
@@ -160,7 +160,7 @@ static machine_state action_header_received() {
 }
 
 static machine_state action_wait_start_ok() {
-    ssize_t n;
+    size_t n;
     amqp_message_header message_header;
     amqp_method *method;
 
@@ -200,7 +200,7 @@ static machine_state action_start_ok_received() {
 }
 
 static machine_state action_wait_tune_ok() {
-    ssize_t n;
+    size_t n;
     amqp_message_header message_header;
     amqp_method *method;
 
@@ -223,7 +223,7 @@ static machine_state action_wait_tune_ok() {
 }
 
 static machine_state action_wait_open_connection() {
-    ssize_t n;
+    size_t n;
     amqp_message_header message_header;
     amqp_method *method;
 
@@ -280,7 +280,7 @@ static machine_state action_close_connection_received() {
 }
 
 static machine_state action_wait_open_channel() {
-    ssize_t n;
+    size_t n;
     amqp_message_header message_header;
     amqp_method *method;
     machine_state next_state = FAIL;
@@ -350,7 +350,7 @@ static machine_state action_close_channel_received() {
 }
 
 static machine_state action_wait_functional() {
-    ssize_t n;
+    size_t n;
     amqp_message_header message_header;
     amqp_method *method;
     machine_state next_state = FAIL;
@@ -420,7 +420,7 @@ static machine_state action_basic_publish_received() {
 }
 
 static machine_state action_wait_publish_content_header() {
-    ssize_t n;
+    size_t n;
     amqp_message_header message_header;
     amqp_content_header *content_header;
 
@@ -440,7 +440,7 @@ static machine_state action_wait_publish_content_header() {
 }
 
 static machine_state action_wait_publish_content() {
-    ssize_t n;
+    size_t n;
     amqp_message_header message_header;
     amqp_method *method;
     machine_state next_state = FAIL;

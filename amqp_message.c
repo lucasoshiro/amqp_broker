@@ -12,16 +12,16 @@ const amqp_protocol_header default_amqp_header = {
     .version_minor = 1
 };
 
-int parse_protocol_header(char *s, ssize_t n, amqp_protocol_header *header) {
-    ssize_t header_size = sizeof(amqp_protocol_header);
+int parse_protocol_header(char *s, size_t n, amqp_protocol_header *header) {
+    size_t header_size = sizeof(amqp_protocol_header);
 
     if (n < header_size) return 1;
     memcpy(header, s, header_size);
     return memcmp(header, &default_amqp_header, header_size);
 }
 
-int parse_message_header(char *s, ssize_t n, amqp_message_header *header) {
-    ssize_t header_size = sizeof(amqp_message_header);
+int parse_message_header(char *s, size_t n, amqp_message_header *header) {
+    size_t header_size = sizeof(amqp_message_header);
 
     if (n < header_size) return 1;
     memcpy(header, s, header_size);
@@ -38,8 +38,8 @@ void unparse_message_header(amqp_message_header header, char *s) {
     memcpy(s, &header, sizeof(amqp_message_header));
 }
 
-int parse_method_header(char *s, ssize_t n, amqp_method_header *header) {
-    ssize_t header_size = sizeof(amqp_method_header);
+int parse_method_header(char *s, size_t n, amqp_method_header *header) {
+    size_t header_size = sizeof(amqp_method_header);
 
     if (n < header_size) return 1;
     memcpy(header, s, header_size);
@@ -56,8 +56,8 @@ void unparse_method_header(amqp_method_header header, char *s) {
     memcpy(s, &header, sizeof(amqp_method_header));
 }
 
-amqp_method *parse_method(char *s, ssize_t n) {
-    ssize_t header_size = sizeof(amqp_method_header);
+amqp_method *parse_method(char *s, size_t n) {
+    size_t header_size = sizeof(amqp_method_header);
     amqp_method *method;
 
     if (n < header_size) return NULL;
@@ -84,8 +84,8 @@ void unparse_content_header_header(
     memcpy(s, &header, sizeof(header));
 }
 
-amqp_content_header *parse_content_header(char *s, ssize_t n) {
-    ssize_t header_size = sizeof(amqp_content_header_header);
+amqp_content_header *parse_content_header(char *s, size_t n) {
+    size_t header_size = sizeof(amqp_content_header_header);
     amqp_content_header *content_header;
 
     if (n < header_size) return NULL;
