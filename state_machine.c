@@ -11,7 +11,6 @@
 #define MAXLINE 4096
 
 int connfd;
-char recvline[MAXLINE + 1];
 
 // Actions
 
@@ -95,14 +94,11 @@ void state_machine_main(int _connfd) {
 }
 
 static machine_state action_wait() {
-    size_t n;
     amqp_protocol_header header;
 
     log_state("WAITING HEADER");
 
-    n = read(connfd, recvline, sizeof(header));
-
-    if (parse_protocol_header(recvline, n, &header))
+    if (read_protocol_header(connfd, &header))
         return FAIL;
 
     return HEADER_RECEIVED;
@@ -158,26 +154,24 @@ static machine_state action_header_received() {
 }
 
 static machine_state action_wait_start_ok() {
-    size_t n;
     amqp_message_header message_header;
     amqp_method *method;
+    machine_state next_state;
 
     log_state("WAIT START OK");
 
-    n = read(connfd, recvline, sizeof(message_header));
-    if (parse_message_header(recvline, n, &message_header)) return FAIL;
-    log_message_header('C', message_header);
+    if (read_message_header(connfd, &message_header)) return FAIL;
 
-    n = read(connfd, recvline, message_header.length);
-    method = parse_method(recvline, n);
-    n = read(connfd, recvline, 1);
+    method = read_method(connfd, message_header.length);
 
     if (method->header.class != CONNECTION ||
         method->header.method != CONNECTION_START_OK)
-        return FAIL;
+        next_state = FAIL;
+    else
+        next_state = START_OK_RECEIVED;
 
     free(method);
-    return START_OK_RECEIVED;
+    return next_state;
 }
 
 static machine_state action_start_ok_received() {
@@ -197,49 +191,44 @@ static machine_state action_start_ok_received() {
 }
 
 static machine_state action_wait_tune_ok() {
-    size_t n;
     amqp_message_header message_header;
     amqp_method *method;
+    machine_state next_state;
 
     log_state("WAIT TUNE OK");
 
-    n = read(connfd, recvline, sizeof(message_header));
-    if (parse_message_header(recvline, n, &message_header)) return FAIL;
-    log_message_header('C', message_header);
+    if (read_message_header(connfd, &message_header)) return FAIL;
 
-    n = read(connfd, recvline, message_header.length);
-    method = parse_method(recvline, n);
-    n = read(connfd, recvline, 1);
+    method = read_method(connfd, message_header.length);
 
     if (method->header.class != CONNECTION ||
         method->header.method != CONNECTION_TUNE_OK)
-        return FAIL;
+        next_state = FAIL;
+    else next_state = WAIT_OPEN_CONNECTION;
 
     free(method);
-    return WAIT_OPEN_CONNECTION;
+    return next_state;
 }
 
 static machine_state action_wait_open_connection() {
-    size_t n;
     amqp_message_header message_header;
     amqp_method *method;
+    machine_state next_state;
 
     log_state("WAIT OPEN CONNECTION");
 
-    n = read(connfd, recvline, sizeof(message_header));
-    if (parse_message_header(recvline, n, &message_header)) return FAIL;
-    log_message_header('C', message_header);
+    if (read_message_header(connfd, &message_header)) return FAIL;
 
-    n = read(connfd, recvline, message_header.length);
-    method = parse_method(recvline, n);
-    n = read(connfd, recvline, 1);
+    method = read_method(connfd, message_header.length);
 
     if (method->header.class != CONNECTION ||
         method->header.method != CONNECTION_OPEN)
-        return FAIL;
+        next_state = FAIL;
+    else
+        next_state = OPEN_CONNECTION_RECEIVED;
 
     free(method);
-    return OPEN_CONNECTION_RECEIVED;
+    return next_state;
 }
 
 static machine_state action_open_connection_received() {
@@ -277,20 +266,15 @@ static machine_state action_close_connection_received() {
 }
 
 static machine_state action_wait_open_channel() {
-    size_t n;
     amqp_message_header message_header;
     amqp_method *method;
     machine_state next_state = FAIL;
 
     log_state("WAIT OPEN CHANNEL");
 
-    n = read(connfd, recvline, sizeof(message_header));
-    if (parse_message_header(recvline, n, &message_header)) return FAIL;
-    log_message_header('C', message_header);
+    if (read_message_header(connfd, &message_header)) return FAIL;
 
-    n = read(connfd, recvline, message_header.length);
-    method = parse_method(recvline, n);
-    n = read(connfd, recvline, 1);
+    method = read_method(connfd, message_header.length);
 
     switch (method->header.class) {
     case CHANNEL:
@@ -347,20 +331,15 @@ static machine_state action_close_channel_received() {
 }
 
 static machine_state action_wait_functional() {
-    size_t n;
     amqp_message_header message_header;
     amqp_method *method;
     machine_state next_state = FAIL;
 
     log_state("WAIT FUNCTIONAL");
 
-    n = read(connfd, recvline, sizeof(message_header));
-    if (parse_message_header(recvline, n, &message_header)) return FAIL;
-    log_message_header('C', message_header);
+    if (read_message_header(connfd, &message_header)) return FAIL;
 
-    n = read(connfd, recvline, message_header.length);
-    method = parse_method(recvline, n);
-    n = read(connfd, recvline, 1);
+    method = read_method(connfd, message_header.length);
 
     switch (method->header.class) {
     case CHANNEL:
@@ -417,19 +396,14 @@ static machine_state action_basic_publish_received() {
 }
 
 static machine_state action_wait_publish_content_header() {
-    size_t n;
     amqp_message_header message_header;
     amqp_content_header *content_header;
 
     log_state("WAIT PUBLISH HEADER");
 
-    n = read(connfd, recvline, sizeof(message_header));
-    if (parse_message_header(recvline, n, &message_header)) return FAIL;
-    log_message_header('C', message_header);
+    if (read_message_header(connfd, &message_header)) return FAIL;
 
-    n = read(connfd, recvline, message_header.length);
-    content_header = parse_content_header(recvline, n);
-    n = read(connfd, recvline, 1);
+    content_header = read_content_header(connfd, message_header.length);
 
     free(content_header);
 
@@ -437,21 +411,17 @@ static machine_state action_wait_publish_content_header() {
 }
 
 static machine_state action_wait_publish_content() {
-    size_t n;
     amqp_message_header message_header;
     amqp_method *method;
+    char *body;
     machine_state next_state = FAIL;
     log_state("WAIT PUBLISH CONTENT");
 
-    n = read(connfd, recvline, sizeof(message_header));
-    if (parse_message_header(recvline, n, &message_header)) return FAIL;
-    log_message_header('C', message_header);
-
-    n = read(connfd, recvline, message_header.length);
+    if (read_message_header(connfd, &message_header)) return FAIL;
 
     switch (message_header.msg_type) {
     case METHOD:
-        method = parse_method(recvline, n);
+        method = read_method(connfd, message_header.length);
         next_state =
             (method->header.class == CHANNEL &&
              method->header.method == CHANNEL_CLOSE)
@@ -460,11 +430,12 @@ static machine_state action_wait_publish_content() {
         free(method);
         break;
     case BODY:
+        body = read_body(connfd, message_header.length);
         next_state = WAIT_PUBLISH_CONTENT;
+        free(body);
         break;
     }
 
-    n = read(connfd, recvline, 1);
     return next_state;
 }
 

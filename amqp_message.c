@@ -9,6 +9,7 @@
 
 #define MAXLINE 4096
 
+char recvline[MAXLINE + 1];
 char sendline[MAXLINE + 1];
 
 const amqp_protocol_header default_amqp_header = {
@@ -27,6 +28,11 @@ int parse_protocol_header(char *s, size_t n, amqp_protocol_header *header) {
     return memcmp(header, &default_amqp_header, header_size);
 }
 
+int read_protocol_header(int connfd, amqp_protocol_header *header) {
+    size_t n = read(connfd, recvline, sizeof(header));
+    return parse_protocol_header(recvline, n, header);
+}
+
 int parse_message_header(char *s, size_t n, amqp_message_header *header) {
     size_t header_size = sizeof(amqp_message_header);
 
@@ -43,6 +49,14 @@ void unparse_message_header(amqp_message_header header, char *s) {
     header.length = htonl(header.length);
 
     memcpy(s, &header, sizeof(amqp_message_header));
+}
+
+int read_message_header(int connfd, amqp_message_header *header) {
+    size_t n;
+    n = read(connfd, recvline, sizeof(*header));
+    if (parse_message_header(recvline, n, header)) return 1;
+    log_message_header('C', *header);
+    return 0;
 }
 
 int parse_method_header(char *s, size_t n, amqp_method_header *header) {
@@ -79,6 +93,17 @@ amqp_method *parse_method(char *s, size_t n) {
     return method;
 }
 
+amqp_method *read_method(int connfd, int length) {
+    size_t n;
+    amqp_method *method;
+
+    n = read(connfd, recvline, length);
+    method = parse_method(recvline, n);
+    n = read(connfd, recvline, 1);
+
+    return n == 0 ? NULL : method;
+}
+
 void unparse_content_header_header(
     amqp_content_header_header header,
     char *s
@@ -107,6 +132,23 @@ amqp_content_header *parse_content_header(char *s, size_t n) {
     content_header->header.property_flags = ntohs(content_header->header.property_flags);
 
     return content_header;
+}
+
+amqp_content_header *read_content_header(int connfd, int length) {
+    size_t n;
+    amqp_content_header *header;
+    n = read(connfd, recvline, length);
+    header = parse_content_header(recvline, length);
+    n = read(connfd, recvline, 1);
+
+    return n == 0 ? NULL : header;
+}
+
+char *read_body(int connfd, int length) {
+    int n = read(connfd, recvline, length + 1);
+    char *body = malloc(length);
+    memcpy(body, recvline, n);
+    return body;
 }
 
 void send_method(
