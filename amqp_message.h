@@ -34,7 +34,7 @@ typedef struct {
     uint16_t class;
     uint16_t weight;
     uint64_t body_size;
-    uint8_t property_flags;
+    uint16_t property_flags;
 } __attribute__((packed)) amqp_content_header_header;
 
 typedef struct {
@@ -50,6 +50,10 @@ void unparse_message_header(amqp_message_header header, char *s);
 int parse_method_header(char *s, ssize_t n, amqp_method_header *header);
 void unparse_method_header(amqp_method_header header, char *s);
 
+void unparse_content_header_header(
+    amqp_content_header_header header,
+    char *s
+    );
 amqp_method *parse_method(char *s, ssize_t n);
 
 amqp_content_header *parse_content_header(char *s, ssize_t n);
@@ -60,5 +64,22 @@ int prepare_message(
     uint16_t channel,
     void *arguments,
     size_t args_size,
+    char *dest
+    );
+
+int prepare_content_header(
+    uint16_t class,
+    uint16_t channel,
+    uint16_t weight,
+    uint64_t body_size,
+    uint16_t flags,
+    char *properties,
+    char *dest
+    );
+
+int prepare_content_body(
+    int channel,
+    char *payload,
+    size_t n,
     char *dest
     );

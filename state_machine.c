@@ -42,6 +42,8 @@ static machine_state action_wait_publish_content();
 
 // Consume
 static machine_state action_basic_consume_received();
+static machine_state action_wait_value_dequeue();
+static machine_state action_value_dequeue_received();
 
 // No operation
 static machine_state action_noop();
@@ -73,8 +75,8 @@ machine_state (*actions[NUM_STATES])() = {
 
     // Consume
     action_basic_consume_received,
-    action_noop,
-    action_noop,
+    action_wait_value_dequeue,
+    action_value_dequeue_received,
     action_noop,
 
     // Finish
@@ -481,9 +483,64 @@ static machine_state action_basic_consume_received() {
         sendline
         );
 
-    log_state("BASIC CONSUME RECEIVED");    
+    log_state("BASIC CONSUME RECEIVED");
     write(connfd, sendline, n);
-    return FINISHED;
+    return WAIT_VALUE_DEQUEUE;
+}
+
+static machine_state action_wait_value_dequeue() {
+    // TODO: dequeue
+    return VALUE_DEQUEUE_RECEIVED;
+}
+
+static machine_state action_value_dequeue_received() {
+    int n;
+    int next_state = FINISHED;
+    char dummy_deliver_argument_str[] =
+        "\x1f\x61\x6d\x71\x2e\x63\x74\x61\x67\x2d\x56\x64\x34\x59\x53\x35"
+        "\x52\x49\x32\x34\x5f\x2d\x71\x48\x68\x61\x6e\x51\x4e\x51\x4a\x67"
+        "\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x07\x63\x68\x65\x65\x74"
+        "\x6f\x73";
+
+    char dummy_content_header_properties[] = "\x01";
+
+    char dummy_payload[7] = "\x62\x61\x74\x61\x74\x61";
+
+    log_state("VALUE DEQUEUE RECEIVED");
+
+    n = prepare_message(
+        BASIC,
+        BASIC_DELIVER,
+        1,
+        dummy_deliver_argument_str,
+        50,
+        sendline
+        );
+
+    write(connfd, sendline, n);
+
+    n = prepare_content_header(
+        BASIC,
+        1,
+        0,
+        6,
+        0x1000,
+        dummy_content_header_properties,
+        sendline
+        );
+
+    write(connfd, sendline, n);
+
+    n = prepare_content_body(
+        1,
+        dummy_payload,
+        6,
+        sendline
+        );
+
+    write(connfd, sendline, n);
+
+    return next_state;
 }
 
 static machine_state action_noop() {

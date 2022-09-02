@@ -2,6 +2,7 @@
 
 #include <stdlib.h>
 #include <arpa/inet.h>
+#include "util.h"
 
 const amqp_protocol_header default_amqp_header = {
     .amqp = {'A', 'M', 'Q', 'P'},
@@ -71,6 +72,18 @@ amqp_method *parse_method(char *s, ssize_t n) {
     return method;
 }
 
+void unparse_content_header_header(
+    amqp_content_header_header header,
+    char *s
+    ) {
+    header.class = htons(header.class);
+    header.weight = htons(header.weight);
+    header.body_size = htonll(header.body_size);
+    header.property_flags = htons(header.property_flags);
+
+    memcpy(s, &header, sizeof(header));
+}
+
 amqp_content_header *parse_content_header(char *s, ssize_t n) {
     ssize_t header_size = sizeof(amqp_content_header_header);
     amqp_content_header *content_header;
@@ -84,6 +97,7 @@ amqp_content_header *parse_content_header(char *s, ssize_t n) {
     content_header->header.class = ntohs(content_header->header.class);
     content_header->header.weight = ntohs(content_header->header.weight);
     content_header->header.body_size = ntohll(content_header->header.body_size);
+    content_header->header.property_flags = ntohs(content_header->header.property_flags);
 
     return content_header;
 }
@@ -122,4 +136,72 @@ int prepare_message(
 
     dest[header_size + args_size] = 0xce;
     return header_size + args_size + 1;
+}
+
+int prepare_content_header(
+    uint16_t class,
+    uint16_t channel,
+    uint16_t weight,
+    uint64_t body_size,
+    uint16_t flags,
+    char *properties,
+    char *dest
+    ) {
+
+    size_t message_header_size = sizeof(amqp_message_header);
+    size_t header_header_size = sizeof(amqp_content_header_header);
+    size_t properties_size = bit_cardinality_16(flags);
+
+    amqp_message_header message_header = {
+        .msg_type = CONTENT_HEADER,
+        .channel = channel,
+        .length = header_header_size + properties_size
+    };
+
+    amqp_content_header_header header_header = {
+        .class = class,
+        .weight = weight,
+        .body_size = body_size,
+        .property_flags = flags
+    };
+
+    unparse_message_header(message_header, dest);
+    unparse_content_header_header(
+        header_header,
+        dest + message_header_size
+        );
+
+    memcpy(dest + message_header_size + header_header_size,
+           properties,
+           properties_size
+        );
+
+    dest[message_header_size +
+         header_header_size +
+         properties_size
+        ] = 0xce;
+
+    return message_header_size + header_header_size + properties_size + 1;
+}
+
+int prepare_content_body(
+    int channel,
+    char *payload,
+    size_t n,
+    char *dest
+    ) {
+
+    size_t message_header_size = sizeof(amqp_message_header);
+
+    amqp_message_header message_header = {
+        .msg_type = BODY,
+        .channel = channel,
+        .length = n
+    };
+
+    unparse_message_header(message_header, dest);
+    memcpy(dest + message_header_size, payload, n);
+    dest[message_header_size + n] = 0xce;
+
+    return message_header_size + n + 1;
 }
