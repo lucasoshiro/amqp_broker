@@ -5,6 +5,7 @@
 #include <unistd.h>
 
 #include "util.h"
+#include "log.h"
 
 #define MAXLINE 4096
 
@@ -142,6 +143,8 @@ void send_method(
 
     sendline[header_size + args_size] = 0xce;
     write(connfd, sendline, header_size + args_size + 1);
+
+    log_message_header('S', message_header);
 }
 
 void send_content_header(
@@ -193,6 +196,8 @@ void send_content_header(
         sendline,
         message_header_size + header_header_size + properties_size + 1
         );
+
+    log_message_header('S', message_header);
 }
 
 void send_body(
@@ -219,4 +224,6 @@ void send_body(
         sendline,
         message_header_size + n + 1
         );
+
+    log_message_header('S', message_header);
 }
