@@ -77,7 +77,6 @@ machine_state (*actions[NUM_STATES])() = {
     action_basic_consume_received,
     action_wait_value_dequeue,
     action_value_dequeue_received,
-    action_noop,
 
     // Finish
     action_noop,
@@ -495,7 +494,6 @@ static machine_state action_wait_value_dequeue() {
 
 static machine_state action_value_dequeue_received() {
     int n;
-    int next_state = FINISHED;
     char dummy_deliver_argument_str[] =
         "\x1f\x61\x6d\x71\x2e\x63\x74\x61\x67\x2d\x56\x64\x34\x59\x53\x35"
         "\x52\x49\x32\x34\x5f\x2d\x71\x48\x68\x61\x6e\x51\x4e\x51\x4a\x67"
@@ -540,7 +538,7 @@ static machine_state action_value_dequeue_received() {
 
     write(connfd, sendline, n);
 
-    return next_state;
+    return WAIT_VALUE_DEQUEUE;
 }
 
 static machine_state action_noop() {
