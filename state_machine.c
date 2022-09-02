@@ -12,7 +12,6 @@
 
 int connfd;
 char recvline[MAXLINE + 1];
-char sendline[MAXLINE + 1];
 
 // Actions
 
@@ -144,17 +143,17 @@ static machine_state action_header_received() {
         "\x4c\x41\x49\x4e\x20\x50\x4c\x41\x49\x4e\x00\x00\x00\x05\x65\x6e"
         "\x5f\x55\x53";
 
-    int n = prepare_message(
+    log_state("HEADER RECEIVED");
+
+    send_method(
+        connfd,
         CONNECTION,
         CONNECTION_START,
         0,
         dummy_argument_str,
-        499,
-        sendline
+        499
         );
 
-    log_state("HEADER RECEIVED");
-    write(connfd, sendline, n);
     return WAIT_START_OK;
 }
 
@@ -184,17 +183,16 @@ static machine_state action_wait_start_ok() {
 static machine_state action_start_ok_received() {
     char dummy_argument_str[] = "\x07\xff\x00\x02\x00\x00\x00\x3c";
 
-    int n = prepare_message(
+    log_state("START OK RECEIVED");
+
+    send_method(
+        connfd,
         CONNECTION,
         CONNECTION_TUNE,
         0,
         dummy_argument_str,
-        8,
-        sendline
+        8
         );
-
-    log_state("START OK RECEIVED");
-    write(connfd, sendline, n);
     return WAIT_TUNE_OK;
 }
 
@@ -247,34 +245,34 @@ static machine_state action_wait_open_connection() {
 static machine_state action_open_connection_received() {
     char dummy_argument_str[] = "\x00";
 
-    int n = prepare_message(
+    log_state("OPEN CONNECTION RECEIVED");
+
+    send_method(
+        connfd,
         CONNECTION,
         CONNECTION_OPEN_OK,
         0,
         dummy_argument_str,
-        1,
-        sendline
+        1
         );
 
-    log_state("OPEN CONNECTION RECEIVED");
-    write(connfd, sendline, n);
     return WAIT_OPEN_CHANNEL;
 }
 
 static machine_state action_close_connection_received() {
     char dummy_argument_str[] = "";
 
-    int n = prepare_message(
+    log_state("CLOSE CONNECTION RECEIVED");
+
+    send_method(
+        connfd,
         CONNECTION,
         CONNECTION_CLOSE_OK,
         0,
         dummy_argument_str,
-        0,
-        sendline
+        0
         );
 
-    log_state("CLOSE CONNECTION RECEIVED");
-    write(connfd, sendline, n);
     return FINISHED;
 }
 
@@ -317,34 +315,34 @@ static machine_state action_wait_open_channel() {
 static machine_state action_open_channel_received() {
     char dummy_argument_str[] = "\x00\x00\x00\x00";
 
-    int n = prepare_message(
+    log_state("OPEN CHANNEL RECEIVED");
+
+    send_method(
+        connfd,
         CHANNEL,
         CHANNEL_OPEN_OK,
         1,
         dummy_argument_str,
-        4,
-        sendline
+        4
         );
 
-    log_state("OPEN CHANNEL RECEIVED");
-    write(connfd, sendline, n);
     return WAIT_FUNCTIONAL;
 }
 
 static machine_state action_close_channel_received() {
     char dummy_argument_str[] = "";
 
-    int n = prepare_message(
+    log_state("CLOSE CHANNEL RECEIVED");
+
+    send_method(
+        connfd,
         CHANNEL,
         CHANNEL_CLOSE_OK,
         1,
         dummy_argument_str,
-        0,
-        sendline
+        0
         );
 
-    log_state("CLOSE CHANNEL RECEIVED");
-    write(connfd, sendline, n);
     return WAIT_OPEN_CHANNEL;
 }
 
@@ -399,17 +397,17 @@ static machine_state action_wait_functional() {
 static machine_state action_queue_declare_received() {
     char dummy_argument_str[] = "\x07\x63\x68\x65\x65\x74\x6f\x73\x00\x00\x00\x00\x00\x00\x00\x00";
 
-    int n = prepare_message(
+    log_state("QUEUE DECLARE RECEIVED");
+
+    send_method(
+        connfd,
         QUEUE,
         QUEUE_DECLARE_OK,
         1,
         dummy_argument_str,
-        16,
-        sendline
+        16
         );
 
-    log_state("QUEUE DECLARE RECEIVED");
-    write(connfd, sendline, n);
     return WAIT_FUNCTIONAL;
 }
 
@@ -473,17 +471,17 @@ static machine_state action_wait_publish_content() {
 static machine_state action_basic_consume_received() {
     char dummy_argument_str[] = "\x00\x00\x00\x00\x00\x00\x00\x01\x00";
 
-    int n = prepare_message(
+    log_state("BASIC CONSUME RECEIVED");
+
+    send_method(
+        connfd,
         BASIC,
         BASIC_CONSUME_OK,
         1,
         dummy_argument_str,
-        13,
-        sendline
+        13
         );
 
-    log_state("BASIC CONSUME RECEIVED");
-    write(connfd, sendline, n);
     return WAIT_VALUE_DEQUEUE;
 }
 
@@ -493,7 +491,6 @@ static machine_state action_wait_value_dequeue() {
 }
 
 static machine_state action_value_dequeue_received() {
-    int n;
     char dummy_deliver_argument_str[] =
         "\x1f\x61\x6d\x71\x2e\x63\x74\x61\x67\x2d\x56\x64\x34\x59\x53\x35"
         "\x52\x49\x32\x34\x5f\x2d\x71\x48\x68\x61\x6e\x51\x4e\x51\x4a\x67"
@@ -506,37 +503,31 @@ static machine_state action_value_dequeue_received() {
 
     log_state("VALUE DEQUEUE RECEIVED");
 
-    n = prepare_message(
+    send_method(
+        connfd,
         BASIC,
         BASIC_DELIVER,
         1,
         dummy_deliver_argument_str,
-        50,
-        sendline
+        50
         );
 
-    write(connfd, sendline, n);
-
-    n = prepare_content_header(
+    send_content_header(
+        connfd,
         BASIC,
         1,
         0,
         6,
         0x1000,
-        dummy_content_header_properties,
-        sendline
+        dummy_content_header_properties
         );
 
-    write(connfd, sendline, n);
-
-    n = prepare_content_body(
+    send_body(
+        connfd,
         1,
         dummy_payload,
-        6,
-        sendline
+        6
         );
-
-    write(connfd, sendline, n);
 
     return WAIT_VALUE_DEQUEUE;
 }

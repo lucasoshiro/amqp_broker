@@ -58,28 +58,28 @@ amqp_method *parse_method(char *s, size_t n);
 
 amqp_content_header *parse_content_header(char *s, size_t n);
 
-int prepare_message(
+void send_method(
+    int connfd,
     class_id class,
     method_id method,
     uint16_t channel,
     void *arguments,
-    size_t args_size,
-    char *dest
+    size_t args_size
     );
 
-int prepare_content_header(
+void send_content_header(
+    int connf,
     uint16_t class,
     uint16_t channel,
     uint16_t weight,
     uint64_t body_size,
     uint16_t flags,
-    char *properties,
-    char *dest
+    char *properties
     );
 
-int prepare_content_body(
+void send_body(
+    int connfd,
     int channel,
     char *payload,
-    size_t n,
-    char *dest
+    size_t n
     );

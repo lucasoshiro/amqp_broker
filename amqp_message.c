@@ -1,8 +1,14 @@
 #include "amqp_message.h"
 
-#include <stdlib.h>
 #include <arpa/inet.h>
+#include <stdlib.h>
+#include <unistd.h>
+
 #include "util.h"
+
+#define MAXLINE 4096
+
+char sendline[MAXLINE + 1];
 
 const amqp_protocol_header default_amqp_header = {
     .amqp = {'A', 'M', 'Q', 'P'},
@@ -102,13 +108,13 @@ amqp_content_header *parse_content_header(char *s, size_t n) {
     return content_header;
 }
 
-int prepare_message(
+void send_method(
+    int connfd,
     class_id class,
     method_id method,
     uint16_t channel,
     void *arguments,
-    size_t args_size,
-    char *dest
+    size_t args_size
     ) {
 
     size_t message_header_size = sizeof(amqp_message_header);
@@ -131,21 +137,21 @@ int prepare_message(
     unparse_message_header(message_header, unparsed);
     unparse_method_header(method_header, unparsed + message_header_size);
 
-    memcpy(dest, unparsed, header_size);
-    memcpy(dest + header_size, arguments, args_size);
+    memcpy(sendline, unparsed, header_size);
+    memcpy(sendline + header_size, arguments, args_size);
 
-    dest[header_size + args_size] = 0xce;
-    return header_size + args_size + 1;
+    sendline[header_size + args_size] = 0xce;
+    write(connfd, sendline, header_size + args_size + 1);
 }
 
-int prepare_content_header(
+void send_content_header(
+    int connfd,
     uint16_t class,
     uint16_t channel,
     uint16_t weight,
     uint64_t body_size,
     uint16_t flags,
-    char *properties,
-    char *dest
+    char *properties
     ) {
 
     size_t message_header_size = sizeof(amqp_message_header);
@@ -165,30 +171,35 @@ int prepare_content_header(
         .property_flags = flags
     };
 
-    unparse_message_header(message_header, dest);
+    unparse_message_header(message_header, sendline);
     unparse_content_header_header(
         header_header,
-        dest + message_header_size
+        sendline + message_header_size
         );
 
-    memcpy(dest + message_header_size + header_header_size,
+    memcpy(sendline + message_header_size + header_header_size,
            properties,
            properties_size
         );
 
-    dest[message_header_size +
-         header_header_size +
-         properties_size
+    sendline[
+        message_header_size +
+        header_header_size +
+        properties_size
         ] = 0xce;
 
-    return message_header_size + header_header_size + properties_size + 1;
+    write(
+        connfd,
+        sendline,
+        message_header_size + header_header_size + properties_size + 1
+        );
 }
 
-int prepare_content_body(
+void send_body(
+    int connfd,
     int channel,
     char *payload,
-    size_t n,
-    char *dest
+    size_t n
     ) {
 
     size_t message_header_size = sizeof(amqp_message_header);
@@ -199,9 +210,13 @@ int prepare_content_body(
         .length = n
     };
 
-    unparse_message_header(message_header, dest);
-    memcpy(dest + message_header_size, payload, n);
-    dest[message_header_size + n] = 0xce;
+    unparse_message_header(message_header, sendline);
+    memcpy(sendline + message_header_size, payload, n);
+    sendline[message_header_size + n] = 0xce;
 
-    return message_header_size + n + 1;
+    write(
+        connfd,
+        sendline,
+        message_header_size + n + 1
+        );
 }
