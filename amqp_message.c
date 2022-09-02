@@ -78,7 +78,7 @@ void unparse_content_header_header(
     ) {
     header.class = htons(header.class);
     header.weight = htons(header.weight);
-    header.body_size = htonll(header.body_size);
+    header.body_size = swipe_endianness_64(header.body_size);
     header.property_flags = htons(header.property_flags);
 
     memcpy(s, &header, sizeof(header));
@@ -96,7 +96,7 @@ amqp_content_header *parse_content_header(char *s, ssize_t n) {
 
     content_header->header.class = ntohs(content_header->header.class);
     content_header->header.weight = ntohs(content_header->header.weight);
-    content_header->header.body_size = ntohll(content_header->header.body_size);
+    content_header->header.body_size = swipe_endianness_64(content_header->header.body_size);
     content_header->header.property_flags = ntohs(content_header->header.property_flags);
 
     return content_header;
