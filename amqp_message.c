@@ -146,8 +146,9 @@ amqp_content_header *read_content_header(int connfd, int length) {
 
 char *read_body(int connfd, int length) {
     int n = read(connfd, recvline, length + 1);
-    char *body = malloc(length);
+    char *body = malloc(length + 1);
     memcpy(body, recvline, n);
+    body[length + 1] = '\0';
     return body;
 }
 
