@@ -66,6 +66,11 @@ char *dequeue_from(queue_pool *pool, char *name) {
     return s;
 }
 
+int queue_size(queue_pool *pool, char *name) {
+    queue *q = get_queue(pool, name);
+    return q == NULL ? -1 : q->size;
+}
+
 void free_pool(queue_pool *pool) {
     for (int i = 0; i < 256; i++)
         if (pool->children[i] != NULL)

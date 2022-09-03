@@ -16,4 +16,6 @@ void enqueue_to(queue_pool *pool, char *name, char *body);
 
 char *dequeue_from(queue_pool *pool, char *name);
 
+int queue_size(queue_pool *pool, char *name);
+
 void free_pool(queue_pool *pool);
