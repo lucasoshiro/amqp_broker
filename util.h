@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <stdlib.h>
 
 int bit_cardinality_16(uint16_t bit_array);
 
@@ -11,3 +12,6 @@ int bit_cardinality_16(uint16_t bit_array);
    Then we need this function to make it.
  */
 uint64_t swipe_endianness_64(uint64_t n);
+
+/* Just wrapping mmap */
+void *shared_malloc(size_t s);

@@ -1,10 +1,12 @@
 #include <stdlib.h>
 #include <string.h>
+#include <sys/mman.h>
 #include "queue.h"
+#include "util.h"
 
 queue *new_queue(char *name) {
     queue *q;
-    q = malloc(sizeof(*q));
+    q = shared_malloc(sizeof(*q));
 
     strcpy(q->name, name);
     q->first_node = NULL;
@@ -17,7 +19,7 @@ void q_enqueue(queue *q, char *body) {
     q_node *n;
     int length = strlen(body);
 
-    n = malloc(sizeof(*n) + length * sizeof(char));
+    n = shared_malloc(sizeof(*n) + length * sizeof(char));
     n->parent = NULL;
     n->length = length;
     strcpy(n->body, body);
@@ -41,7 +43,7 @@ char *q_dequeue(queue *q) {
         ret = malloc(sizeof(char) * (1 + length));
         strcpy(ret, last->body);
         q->last_node = last->parent;
-        free(last);
+        munmap(last, sizeof(*last) + length);
 
         if (q->first_node == last)
             q->first_node = NULL;
@@ -54,9 +56,11 @@ char *q_dequeue(queue *q) {
 
 void free_queue(queue *q) {
     for (q_node *n = q->last_node; n != NULL;) {
-        n = n->parent;
-        free(n);
+        int length = n->length;
+        q_node *old = n;
+        n = old->parent;
+        munmap(old, sizeof(*old) + length);
     }
 
-    free(q);
+    munmap(q, sizeof(*q));
 }

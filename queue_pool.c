@@ -1,5 +1,7 @@
 #include "queue_pool.h"
 #include <stdlib.h>
+#include <sys/mman.h>
+#include "util.h"
 
 typedef struct trie_node {
     queue *q;
@@ -24,7 +26,7 @@ static trie_node *_get_trie_node(trie_node *root, char *name) {
     child = root->children[(int) first];
 
     if (child == NULL) {
-        child = malloc(sizeof(*child));
+        child = shared_malloc(sizeof(*child));
         root->children[(int) first] = child;
     }
 
@@ -40,7 +42,7 @@ static void _free_trie_node(trie_node *root) {
     if (root->q != NULL)
         free_queue(root->q);
 
-    free(root);
+    munmap(root, sizeof(*root));
 }
 
 static queue *get_queue(char *name) {
@@ -52,7 +54,7 @@ void create_queue(char *name) {
     queue *q = new_queue(name);
     trie_node *node = _get_trie_node(pool, name);
 
-    if (node->q) free(node->q);
+    if (node->q) free_queue(q);
 
     node->q = q;
 }
