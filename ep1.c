@@ -41,6 +41,7 @@
 #include <unistd.h>
 
 #include "state_machine.h"
+#include "shared.h"
 
 #define LISTENQ 1
 #define MAXDATASIZE 100
@@ -55,6 +56,8 @@ int main (int argc, char **argv) {
     /* Retorno da função fork para saber quem é o processo filho e
      * quem é o processo pai */
     pid_t childpid;
+
+    shared_state *ss = new_shared_state();
    
     if (argc != 2) {
         fprintf(stderr,"Uso: %s <Porta>\n",argv[0]);
@@ -106,7 +109,7 @@ int main (int argc, char **argv) {
    
     /* O servidor no final das contas é um loop infinito de espera por
      * conexões e processamento de cada uma individualmente */
-	for (;;) {
+    for (;;) {
         /* O socket inicial que foi criado é o socket que vai aguardar
          * pela conexão na porta especificada. Mas pode ser que existam
          * diversos clientes conectando no servidor. Por isso deve-se
@@ -183,5 +186,6 @@ int main (int argc, char **argv) {
              * pelo processo filho) */
             close(connfd);
     }
+    free_shared_state(ss);
     exit(0);
 }
