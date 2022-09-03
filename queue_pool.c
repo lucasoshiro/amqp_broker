@@ -1,32 +1,24 @@
 #include "queue_pool.h"
 #include <stdlib.h>
+#include <string.h>
 #include <sys/mman.h>
 #include "util.h"
-
-typedef struct trie_node {
-    queue *q;
-    struct trie_node *children[256];
-} trie_node;
-
-typedef trie_node queue_pool;
-
-queue_pool _pool;
-queue_pool *pool = &_pool;
+#include <stdio.h>
 
 static trie_node *_get_trie_node(trie_node *, char *);
 static void _free_trie_node(trie_node *);
-static queue *get_queue(char *);
+static queue *get_queue(queue_pool *, char *);
 
 static trie_node *_get_trie_node(trie_node *root, char *name) {
     trie_node *child;
     char first = *name;
 
     if (first == '\0') return root;
-
     child = root->children[(int) first];
 
     if (child == NULL) {
         child = shared_malloc(sizeof(*child));
+        bzero(child, sizeof(*child));
         root->children[(int) first] = child;
     }
 
@@ -45,12 +37,16 @@ static void _free_trie_node(trie_node *root) {
     munmap(root, sizeof(*root));
 }
 
-static queue *get_queue(char *name) {
+static queue *get_queue(queue_pool *pool, char *name) {
     trie_node *node = _get_trie_node(pool, name);
     return node->q;
 }
 
-void create_queue(char *name) {
+void init_queue_pool(queue_pool *pool) {
+    bzero(pool, sizeof(*pool));
+}
+
+void create_queue(queue_pool *pool, char *name) {
     queue *q = new_queue(name);
     trie_node *node = _get_trie_node(pool, name);
 
@@ -59,18 +55,18 @@ void create_queue(char *name) {
     node->q = q;
 }
 
-void enqueue_to(char *name, char *body) {
-    queue *q = get_queue(name);
+void enqueue_to(queue_pool *pool, char *name, char *body) {
+    queue *q = get_queue(pool, name);
     q_enqueue(q, body);
 }
 
-char *dequeue_from(char *name) {
-    queue *q = get_queue(name);    
+char *dequeue_from(queue_pool *pool, char *name) {
+    queue *q = get_queue(pool, name);    
     char *s = q_dequeue(q);
     return s;
 }
 
-void free_pool() {
+void free_pool(queue_pool *pool) {
     for (int i = 0; i < 256; i++)
         if (pool->children[i] != NULL)
             _free_trie_node(pool->children[i]);

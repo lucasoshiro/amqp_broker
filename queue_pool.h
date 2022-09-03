@@ -1,10 +1,19 @@
 #pragma once
 #include "queue.h"
 
-void create_queue(char *name);
+typedef struct trie_node {
+    queue *q;
+    struct trie_node *children[256];
+} trie_node;
 
-void enqueue_to(char *name, char *body);
+typedef trie_node queue_pool;
 
-char *dequeue_from(char *name);
+void init_queue_pool(queue_pool *pool);
 
-void free_pool();
+void create_queue(queue_pool *pool, char *name);
+
+void enqueue_to(queue_pool *pool, char *name, char *body);
+
+char *dequeue_from(queue_pool *pool, char *name);
+
+void free_pool(queue_pool *pool);

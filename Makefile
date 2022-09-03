@@ -7,4 +7,4 @@ debug: debug.c queue_pool.o queue.o util.o
 
 .PHONY: clean
 clean:
-	rm ep1 *.o
+	rm debug ep1 *.o
