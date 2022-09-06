@@ -78,11 +78,11 @@ machine_state (*actions[NUM_STATES])(connection_state *) = {
     action_noop
 };
 
-void state_machine_main(int _connfd, shared_state *ss) {
+void state_machine_main(int connfd, shared_state *ss) {
     machine_state m = WAIT;
 
     connection_state cs = {
-        .connfd = _connfd,
+        .connfd = connfd,
         .ss = ss
     };
     
