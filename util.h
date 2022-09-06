@@ -13,5 +13,3 @@ int bit_cardinality_16(uint16_t bit_array);
  */
 uint64_t swipe_endianness_64(uint64_t n);
 
-/* Just wrapping mmap */
-void *shared_malloc(size_t s);
