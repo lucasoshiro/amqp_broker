@@ -1,5 +1,7 @@
 #pragma once
 
+#include "shared.h"
+
 typedef enum machine_state {
     // Connection
     WAIT,
@@ -38,4 +40,4 @@ typedef enum machine_state {
     NUM_STATES
 } machine_state;
 
-void state_machine_main(int _connfd);
+void state_machine_main(int _connfd, shared_state *ss);

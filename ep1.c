@@ -51,10 +51,11 @@
 void *connection_thread_main(void *_args) {
     struct {
         int connfd;
+        shared_state *ss;
     } *args = _args;
 
     printf("[Uma conexão aberta]\n");    
-    state_machine_main(args->connfd);
+    state_machine_main(args->connfd, args->ss);
     printf("[Uma conexão fechada]\n");
     close(args->connfd);
     return NULL;
@@ -67,7 +68,9 @@ int main (int argc, char **argv) {
     /* Informações sobre o socket (endereço e porta) ficam nesta struct */
     struct sockaddr_in servaddr;
 
-    shared_state *ss = new_shared_state();
+    shared_state ss;
+
+    init_shared_state(&ss);
    
     if (argc != 2) {
         fprintf(stderr,"Uso: %s <Porta>\n",argv[0]);
@@ -123,6 +126,7 @@ int main (int argc, char **argv) {
         pthread_t thread;
         struct {
             int connfd;
+            shared_state *ss;
         } args;
 
         /* O socket inicial que foi criado é o socket que vai aguardar
@@ -138,9 +142,9 @@ int main (int argc, char **argv) {
         }
       
         args.connfd = connfd;
+        args.ss = &ss;
         pthread_create(&thread, NULL, connection_thread_main, &args);
     }
 
-    free_shared_state(ss);
     exit(0);
 }

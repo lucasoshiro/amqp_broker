@@ -12,6 +12,7 @@
 
 typedef struct {
     int connfd;
+    shared_state *ss;
 } connection_state;
 
 // Actions
@@ -83,11 +84,12 @@ machine_state (*actions[NUM_STATES])(connection_state *) = {
     action_noop
 };
 
-void state_machine_main(int _connfd) {
+void state_machine_main(int _connfd, shared_state *ss) {
     machine_state m = WAIT;
 
     connection_state cs = {
-        .connfd = _connfd
+        .connfd = _connfd,
+        .ss = ss
     };
     
     while (m != FINISHED && m != FAIL) {
