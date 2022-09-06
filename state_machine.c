@@ -7,12 +7,14 @@
 #include "amqp_message.h"
 #include "amqp_methods.h"
 #include "log.h"
+#include "queue_pool.h"
 
 #define MAXLINE 4096
 
 typedef struct {
     int connfd;
     shared_state *ss;
+    char recvline[MAXLINE];
 } connection_state;
 
 // Actions
@@ -384,6 +386,8 @@ static machine_state action_queue_declare_received(connection_state *cs) {
 
     log_state("QUEUE DECLARE RECEIVED");
 
+    create_queue(&cs->ss->pool, "cheetos");
+
     send_method(
         cs->connfd,
         QUEUE,
@@ -438,6 +442,9 @@ static machine_state action_wait_publish_content(connection_state *cs) {
         break;
     case BODY:
         body = read_body(cs->connfd, message_header.length);
+
+        enqueue_to(&cs->ss->pool, "cheetos", body);
+
         next_state = WAIT_PUBLISH_CONTENT;
         free(body);
         break;
@@ -449,6 +456,14 @@ static machine_state action_wait_publish_content(connection_state *cs) {
 static machine_state action_basic_consume_received(connection_state *cs) {
     char dummy_argument_str[] = "\x00\x00\x00\x00\x00\x00\x00\x01\x00";
 
+    char dummy_deliver_argument_str[] =
+        "\x1f\x61\x6d\x71\x2e\x63\x74\x61\x67\x2d\x56\x64\x34\x59\x53\x35"
+        "\x52\x49\x32\x34\x5f\x2d\x71\x48\x68\x61\x6e\x51\x4e\x51\x4a\x67"
+        "\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x07\x63\x68\x65\x65\x74"
+        "\x6f\x73";
+
+    char dummy_content_header_properties[] = "\x01";
+
     log_state("BASIC CONSUME RECEIVED");
 
     send_method(
@@ -459,28 +474,6 @@ static machine_state action_basic_consume_received(connection_state *cs) {
         dummy_argument_str,
         13
         );
-
-    return WAIT_VALUE_DEQUEUE;
-}
-
-static machine_state action_wait_value_dequeue(connection_state *cs) {
-    // TODO: dequeue
-    (void) cs;
-    return VALUE_DEQUEUE_RECEIVED;
-}
-
-static machine_state action_value_dequeue_received(connection_state *cs) {
-    char dummy_deliver_argument_str[] =
-        "\x1f\x61\x6d\x71\x2e\x63\x74\x61\x67\x2d\x56\x64\x34\x59\x53\x35"
-        "\x52\x49\x32\x34\x5f\x2d\x71\x48\x68\x61\x6e\x51\x4e\x51\x4a\x67"
-        "\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x07\x63\x68\x65\x65\x74"
-        "\x6f\x73";
-
-    char dummy_content_header_properties[] = "\x01";
-
-    char dummy_payload[7] = "\x62\x61\x74\x61\x74\x61";
-
-    log_state("VALUE DEQUEUE RECEIVED");
 
     send_method(
         cs->connfd,
@@ -501,11 +494,30 @@ static machine_state action_value_dequeue_received(connection_state *cs) {
         dummy_content_header_properties
         );
 
+    return WAIT_VALUE_DEQUEUE;
+}
+
+static machine_state action_wait_value_dequeue(connection_state *cs) {
+    char *s;
+
+    while (queue_size(&cs->ss->pool, "cheetos") == 0)
+        sleep(1);
+
+    s = dequeue_from(&cs->ss->pool, "cheetos");
+    strcpy(cs->recvline, s);
+    free(s);
+
+    return VALUE_DEQUEUE_RECEIVED;
+}
+
+static machine_state action_value_dequeue_received(connection_state *cs) {
+    log_state("VALUE DEQUEUE RECEIVED");
+
     send_body(
         cs->connfd,
         1,
-        dummy_payload,
-        6
+        cs->recvline,
+        strlen(cs->recvline)
         );
 
     return WAIT_VALUE_DEQUEUE;

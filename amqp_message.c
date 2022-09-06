@@ -150,7 +150,7 @@ char *read_body(int connfd, int length) {
     int n = read(connfd, recvline, length + 1);
     char *body = malloc(length + 1);
     memcpy(body, recvline, n);
-    body[length + 1] = '\0';
+    body[length] = '\0';
     return body;
 }
 
