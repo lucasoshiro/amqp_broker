@@ -39,6 +39,7 @@
 #include <arpa/inet.h>
 #include <time.h>
 #include <unistd.h>
+#include <pthread.h>
 
 #include "state_machine.h"
 #include "shared.h"
@@ -47,15 +48,24 @@
 #define MAXDATASIZE 100
 #define MAXLINE 4096
 
+void *connection_thread_main(void *_args) {
+    struct {
+        int connfd;
+    } *args = _args;
+
+    printf("[Uma conexão aberta]\n");    
+    state_machine_main(args->connfd);
+    printf("[Uma conexão fechada]\n");
+    close(args->connfd);
+    return NULL;
+}
+
 int main (int argc, char **argv) {
     /* Os sockets. Um que será o socket que vai escutar pelas conexões
      * e o outro que vai ser o socket específico de cada conexão */
     int listenfd, connfd;
     /* Informações sobre o socket (endereço e porta) ficam nesta struct */
     struct sockaddr_in servaddr;
-    /* Retorno da função fork para saber quem é o processo filho e
-     * quem é o processo pai */
-    pid_t childpid;
 
     shared_state *ss = new_shared_state();
    
@@ -110,6 +120,11 @@ int main (int argc, char **argv) {
     /* O servidor no final das contas é um loop infinito de espera por
      * conexões e processamento de cada uma individualmente */
     for (;;) {
+        pthread_t thread;
+        struct {
+            int connfd;
+        } args;
+
         /* O socket inicial que foi criado é o socket que vai aguardar
          * pela conexão na porta especificada. Mas pode ser que existam
          * diversos clientes conectando no servidor. Por isso deve-se
@@ -122,70 +137,10 @@ int main (int argc, char **argv) {
             exit(5);
         }
       
-        /* Agora o servidor precisa tratar este cliente de forma
-         * separada. Para isto é criado um processo filho usando a
-         * função fork. O processo vai ser uma cópia deste. Depois da
-         * função fork, os dois processos (pai e filho) estarão no mesmo
-         * ponto do código, mas cada um terá um PID diferente. Assim é
-         * possível diferenciar o que cada processo terá que fazer. O
-         * filho tem que processar a requisição do cliente. O pai tem
-         * que voltar no loop para continuar aceitando novas conexões.
-         * Se o retorno da função fork for zero, é porque está no
-         * processo filho. */
-        if ( (childpid = fork()) == 0) {
-            /**** PROCESSO FILHO ****/
-            printf("[Uma conexão aberta]\n");
-            /* Já que está no processo filho, não precisa mais do socket
-             * listenfd. Só o processo pai precisa deste socket. */
-            close(listenfd);
-         
-            /* Agora pode ler do socket e escrever no socket. Isto tem
-             * que ser feito em sincronia com o cliente. Não faz sentido
-             * ler sem ter o que ler. Ou seja, neste caso está sendo
-             * considerado que o cliente vai enviar algo para o servidor.
-             * O servidor vai processar o que tiver sido enviado e vai
-             * enviar uma resposta para o cliente (Que precisará estar
-             * esperando por esta resposta) 
-             */
-
-            /* ========================================================= */
-            /* ========================================================= */
-            /*                         EP1 INÍCIO                        */
-            /* ========================================================= */
-            /* ========================================================= */
-            /* TODO: É esta parte do código que terá que ser modificada
-             * para que este servidor consiga interpretar comandos AMQP  */
-
-            /* while ((n=read(connfd, recvline, MAXLINE)) > 0) { */
-            /*     recvline[n]=0; */
-            /*     printf("[Cliente conectado no processo filho %d enviou:] ",getpid()); */
-            /*     if ((fputs(recvline,stdout)) == EOF) { */
-            /*         perror("fputs :( \n"); */
-            /*         exit(6); */
-            /*     } */
-            /*     write(connfd, recvline, strlen(recvline)); */
-            /* } */
-
-            state_machine_main(connfd);
-
-            /* ========================================================= */
-            /* ========================================================= */
-            /*                         EP1 FIM                           */
-            /* ========================================================= */
-            /* ========================================================= */
-
-            /* Após ter feito toda a troca de informação com o cliente,
-             * pode finalizar o processo filho */
-            printf("[Uma conexão fechada]\n");
-            exit(0);
-        }
-        else
-            /**** PROCESSO PAI ****/
-            /* Se for o pai, a única coisa a ser feita é fechar o socket
-             * connfd (ele é o socket do cliente específico que será tratado
-             * pelo processo filho) */
-            close(connfd);
+        args.connfd = connfd;
+        pthread_create(&thread, NULL, connection_thread_main, &args);
     }
+
     free_shared_state(ss);
     exit(0);
 }

@@ -10,43 +10,45 @@
 
 #define MAXLINE 4096
 
-int connfd;
+typedef struct {
+    int connfd;
+} connection_state;
 
 // Actions
 
 // Connection
-static machine_state action_wait();
-static machine_state action_header_received();
-static machine_state action_wait_start_ok();
-static machine_state action_start_ok_received();
-static machine_state action_wait_tune_ok();
-static machine_state action_wait_open_connection();
-static machine_state action_open_connection_received();
-static machine_state action_close_connection_received();
+static machine_state action_wait(connection_state *);
+static machine_state action_header_received(connection_state *);
+static machine_state action_wait_start_ok(connection_state *);
+static machine_state action_start_ok_received(connection_state *);
+static machine_state action_wait_tune_ok(connection_state *);
+static machine_state action_wait_open_connection(connection_state *);
+static machine_state action_open_connection_received(connection_state *);
+static machine_state action_close_connection_received(connection_state *);
 
 // Channel
-static machine_state action_wait_open_channel();
-static machine_state action_open_channel_received();
-static machine_state action_close_channel_received();
+static machine_state action_wait_open_channel(connection_state *);
+static machine_state action_open_channel_received(connection_state *);
+static machine_state action_close_channel_received(connection_state *);
 
 // Functional
-static machine_state action_wait_functional();
-static machine_state action_queue_declare_received();
+static machine_state action_wait_functional(connection_state *);
+static machine_state action_queue_declare_received(connection_state *);
 
 // Publish
-static machine_state action_basic_publish_received();
-static machine_state action_wait_publish_content_header();
-static machine_state action_wait_publish_content();
+static machine_state action_basic_publish_received(connection_state *);
+static machine_state action_wait_publish_content_header(connection_state *);
+static machine_state action_wait_publish_content(connection_state *);
 
 // Consume
-static machine_state action_basic_consume_received();
-static machine_state action_wait_value_dequeue();
-static machine_state action_value_dequeue_received();
+static machine_state action_basic_consume_received(connection_state *);
+static machine_state action_wait_value_dequeue(connection_state *);
+static machine_state action_value_dequeue_received(connection_state *);
 
 // No operation
-static machine_state action_noop();
+static machine_state action_noop(connection_state *);
 
-machine_state (*actions[NUM_STATES])() = {
+machine_state (*actions[NUM_STATES])(connection_state *) = {
     // Connection
     action_wait,
     action_header_received,
@@ -84,27 +86,29 @@ machine_state (*actions[NUM_STATES])() = {
 void state_machine_main(int _connfd) {
     machine_state m = WAIT;
 
-    connfd = _connfd;
-
+    connection_state cs = {
+        .connfd = _connfd
+    };
+    
     while (m != FINISHED && m != FAIL) {
-        m = actions[m]();
+        m = actions[m](&cs);
         if (m == FAIL)
             printf("!!!!!!!!!!!! FAIL !!!!!!!!!!!!!!\n");
     }
 }
 
-static machine_state action_wait() {
+static machine_state action_wait(connection_state *cs) {
     amqp_protocol_header header;
 
     log_state("WAITING HEADER");
 
-    if (read_protocol_header(connfd, &header))
+    if (read_protocol_header(cs->connfd, &header))
         return FAIL;
 
     return HEADER_RECEIVED;
 }
 
-static machine_state action_header_received() {
+static machine_state action_header_received(connection_state *cs) {
     char dummy_argument_str[] =
         "\x00\x09\x00\x00\x01\xd2\x0c\x63\x61\x70\x61\x62\x69\x6c\x69\x74"
         "\x69\x65\x73\x46\x00\x00\x00\xc7\x12\x70\x75\x62\x6c\x69\x73\x68"
@@ -142,7 +146,7 @@ static machine_state action_header_received() {
     log_state("HEADER RECEIVED");
 
     send_method(
-        connfd,
+        cs->connfd,
         CONNECTION,
         CONNECTION_START,
         0,
@@ -153,16 +157,16 @@ static machine_state action_header_received() {
     return WAIT_START_OK;
 }
 
-static machine_state action_wait_start_ok() {
+static machine_state action_wait_start_ok(connection_state *cs) {
     amqp_message_header message_header;
     amqp_method *method;
     machine_state next_state;
 
     log_state("WAIT START OK");
 
-    if (read_message_header(connfd, &message_header)) return FAIL;
+    if (read_message_header(cs->connfd, &message_header)) return FAIL;
 
-    method = read_method(connfd, message_header.length);
+    method = read_method(cs->connfd, message_header.length);
 
     if (method->header.class != CONNECTION ||
         method->header.method != CONNECTION_START_OK)
@@ -174,13 +178,13 @@ static machine_state action_wait_start_ok() {
     return next_state;
 }
 
-static machine_state action_start_ok_received() {
+static machine_state action_start_ok_received(connection_state *cs) {
     char dummy_argument_str[] = "\x07\xff\x00\x02\x00\x00\x00\x3c";
 
     log_state("START OK RECEIVED");
 
     send_method(
-        connfd,
+        cs->connfd,
         CONNECTION,
         CONNECTION_TUNE,
         0,
@@ -190,16 +194,16 @@ static machine_state action_start_ok_received() {
     return WAIT_TUNE_OK;
 }
 
-static machine_state action_wait_tune_ok() {
+static machine_state action_wait_tune_ok(connection_state *cs) {
     amqp_message_header message_header;
     amqp_method *method;
     machine_state next_state;
 
     log_state("WAIT TUNE OK");
 
-    if (read_message_header(connfd, &message_header)) return FAIL;
+    if (read_message_header(cs->connfd, &message_header)) return FAIL;
 
-    method = read_method(connfd, message_header.length);
+    method = read_method(cs->connfd, message_header.length);
 
     if (method->header.class != CONNECTION ||
         method->header.method != CONNECTION_TUNE_OK)
@@ -210,16 +214,16 @@ static machine_state action_wait_tune_ok() {
     return next_state;
 }
 
-static machine_state action_wait_open_connection() {
+static machine_state action_wait_open_connection(connection_state *cs) {
     amqp_message_header message_header;
     amqp_method *method;
     machine_state next_state;
 
     log_state("WAIT OPEN CONNECTION");
 
-    if (read_message_header(connfd, &message_header)) return FAIL;
+    if (read_message_header(cs->connfd, &message_header)) return FAIL;
 
-    method = read_method(connfd, message_header.length);
+    method = read_method(cs->connfd, message_header.length);
 
     if (method->header.class != CONNECTION ||
         method->header.method != CONNECTION_OPEN)
@@ -231,13 +235,13 @@ static machine_state action_wait_open_connection() {
     return next_state;
 }
 
-static machine_state action_open_connection_received() {
+static machine_state action_open_connection_received(connection_state *cs) {
     char dummy_argument_str[] = "\x00";
 
     log_state("OPEN CONNECTION RECEIVED");
 
     send_method(
-        connfd,
+        cs->connfd,
         CONNECTION,
         CONNECTION_OPEN_OK,
         0,
@@ -248,13 +252,13 @@ static machine_state action_open_connection_received() {
     return WAIT_OPEN_CHANNEL;
 }
 
-static machine_state action_close_connection_received() {
+static machine_state action_close_connection_received(connection_state *cs) {
     char dummy_argument_str[] = "";
 
     log_state("CLOSE CONNECTION RECEIVED");
 
     send_method(
-        connfd,
+        cs->connfd,
         CONNECTION,
         CONNECTION_CLOSE_OK,
         0,
@@ -265,16 +269,16 @@ static machine_state action_close_connection_received() {
     return FINISHED;
 }
 
-static machine_state action_wait_open_channel() {
+static machine_state action_wait_open_channel(connection_state *cs) {
     amqp_message_header message_header;
     amqp_method *method;
     machine_state next_state = FAIL;
 
     log_state("WAIT OPEN CHANNEL");
 
-    if (read_message_header(connfd, &message_header)) return FAIL;
+    if (read_message_header(cs->connfd, &message_header)) return FAIL;
 
-    method = read_method(connfd, message_header.length);
+    method = read_method(cs->connfd, message_header.length);
 
     switch (method->header.class) {
     case CHANNEL:
@@ -296,13 +300,13 @@ static machine_state action_wait_open_channel() {
     return next_state;
 }
 
-static machine_state action_open_channel_received() {
+static machine_state action_open_channel_received(connection_state *cs) {
     char dummy_argument_str[] = "\x00\x00\x00\x00";
 
     log_state("OPEN CHANNEL RECEIVED");
 
     send_method(
-        connfd,
+        cs->connfd,
         CHANNEL,
         CHANNEL_OPEN_OK,
         1,
@@ -313,13 +317,13 @@ static machine_state action_open_channel_received() {
     return WAIT_FUNCTIONAL;
 }
 
-static machine_state action_close_channel_received() {
+static machine_state action_close_channel_received(connection_state *cs) {
     char dummy_argument_str[] = "";
 
     log_state("CLOSE CHANNEL RECEIVED");
 
     send_method(
-        connfd,
+        cs->connfd,
         CHANNEL,
         CHANNEL_CLOSE_OK,
         1,
@@ -330,16 +334,16 @@ static machine_state action_close_channel_received() {
     return WAIT_OPEN_CHANNEL;
 }
 
-static machine_state action_wait_functional() {
+static machine_state action_wait_functional(connection_state *cs) {
     amqp_message_header message_header;
     amqp_method *method;
     machine_state next_state = FAIL;
 
     log_state("WAIT FUNCTIONAL");
 
-    if (read_message_header(connfd, &message_header)) return FAIL;
+    if (read_message_header(cs->connfd, &message_header)) return FAIL;
 
-    method = read_method(connfd, message_header.length);
+    method = read_method(cs->connfd, message_header.length);
 
     switch (method->header.class) {
     case CHANNEL:
@@ -373,13 +377,13 @@ static machine_state action_wait_functional() {
     return next_state;
 }
 
-static machine_state action_queue_declare_received() {
+static machine_state action_queue_declare_received(connection_state *cs) {
     char dummy_argument_str[] = "\x07\x63\x68\x65\x65\x74\x6f\x73\x00\x00\x00\x00\x00\x00\x00\x00";
 
     log_state("QUEUE DECLARE RECEIVED");
 
     send_method(
-        connfd,
+        cs->connfd,
         QUEUE,
         QUEUE_DECLARE_OK,
         1,
@@ -390,38 +394,39 @@ static machine_state action_queue_declare_received() {
     return WAIT_FUNCTIONAL;
 }
 
-static machine_state action_basic_publish_received() {
+static machine_state action_basic_publish_received(connection_state *cs) {
+    (void) cs;
     log_state("BASIC PUBLISH RECEIVED");
     return WAIT_PUBLISH_CONTENT_HEADER;
 }
 
-static machine_state action_wait_publish_content_header() {
+static machine_state action_wait_publish_content_header(connection_state *cs) {
     amqp_message_header message_header;
     amqp_content_header *content_header;
 
     log_state("WAIT PUBLISH HEADER");
 
-    if (read_message_header(connfd, &message_header)) return FAIL;
+    if (read_message_header(cs->connfd, &message_header)) return FAIL;
 
-    content_header = read_content_header(connfd, message_header.length);
+    content_header = read_content_header(cs->connfd, message_header.length);
 
     free(content_header);
 
     return WAIT_PUBLISH_CONTENT;
 }
 
-static machine_state action_wait_publish_content() {
+static machine_state action_wait_publish_content(connection_state *cs) {
     amqp_message_header message_header;
     amqp_method *method;
     char *body;
     machine_state next_state = FAIL;
     log_state("WAIT PUBLISH CONTENT");
 
-    if (read_message_header(connfd, &message_header)) return FAIL;
+    if (read_message_header(cs->connfd, &message_header)) return FAIL;
 
     switch (message_header.msg_type) {
     case METHOD:
-        method = read_method(connfd, message_header.length);
+        method = read_method(cs->connfd, message_header.length);
         next_state =
             (method->header.class == CHANNEL &&
              method->header.method == CHANNEL_CLOSE)
@@ -430,7 +435,7 @@ static machine_state action_wait_publish_content() {
         free(method);
         break;
     case BODY:
-        body = read_body(connfd, message_header.length);
+        body = read_body(cs->connfd, message_header.length);
         next_state = WAIT_PUBLISH_CONTENT;
         free(body);
         break;
@@ -439,13 +444,13 @@ static machine_state action_wait_publish_content() {
     return next_state;
 }
 
-static machine_state action_basic_consume_received() {
+static machine_state action_basic_consume_received(connection_state *cs) {
     char dummy_argument_str[] = "\x00\x00\x00\x00\x00\x00\x00\x01\x00";
 
     log_state("BASIC CONSUME RECEIVED");
 
     send_method(
-        connfd,
+        cs->connfd,
         BASIC,
         BASIC_CONSUME_OK,
         1,
@@ -456,12 +461,13 @@ static machine_state action_basic_consume_received() {
     return WAIT_VALUE_DEQUEUE;
 }
 
-static machine_state action_wait_value_dequeue() {
+static machine_state action_wait_value_dequeue(connection_state *cs) {
     // TODO: dequeue
+    (void) cs;
     return VALUE_DEQUEUE_RECEIVED;
 }
 
-static machine_state action_value_dequeue_received() {
+static machine_state action_value_dequeue_received(connection_state *cs) {
     char dummy_deliver_argument_str[] =
         "\x1f\x61\x6d\x71\x2e\x63\x74\x61\x67\x2d\x56\x64\x34\x59\x53\x35"
         "\x52\x49\x32\x34\x5f\x2d\x71\x48\x68\x61\x6e\x51\x4e\x51\x4a\x67"
@@ -475,7 +481,7 @@ static machine_state action_value_dequeue_received() {
     log_state("VALUE DEQUEUE RECEIVED");
 
     send_method(
-        connfd,
+        cs->connfd,
         BASIC,
         BASIC_DELIVER,
         1,
@@ -484,7 +490,7 @@ static machine_state action_value_dequeue_received() {
         );
 
     send_content_header(
-        connfd,
+        cs->connfd,
         BASIC,
         1,
         0,
@@ -494,7 +500,7 @@ static machine_state action_value_dequeue_received() {
         );
 
     send_body(
-        connfd,
+        cs->connfd,
         1,
         dummy_payload,
         6
@@ -503,6 +509,7 @@ static machine_state action_value_dequeue_received() {
     return WAIT_VALUE_DEQUEUE;
 }
 
-static machine_state action_noop() {
+static machine_state action_noop(connection_state *cs) {
+    (void) cs;
     return FAIL;
 }

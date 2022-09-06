@@ -9,9 +9,6 @@
 
 #define MAXLINE 4096
 
-char recvline[MAXLINE + 1];
-char sendline[MAXLINE + 1];
-
 const amqp_protocol_header default_amqp_header = {
     .amqp = {'A', 'M', 'Q', 'P'},
     .id_major = 0,
@@ -29,6 +26,7 @@ int parse_protocol_header(char *s, size_t n, amqp_protocol_header *header) {
 }
 
 int read_protocol_header(int connfd, amqp_protocol_header *header) {
+    char recvline[MAXLINE + 1];
     size_t n = read(connfd, recvline, sizeof(header));
     return parse_protocol_header(recvline, n, header);
 }
@@ -52,6 +50,7 @@ void unparse_message_header(amqp_message_header header, char *s) {
 }
 
 int read_message_header(int connfd, amqp_message_header *header) {
+    char recvline[MAXLINE + 1];
     size_t n;
     n = read(connfd, recvline, sizeof(*header));
     if (parse_message_header(recvline, n, header)) return 1;
@@ -94,6 +93,7 @@ amqp_method *parse_method(char *s, size_t n) {
 }
 
 amqp_method *read_method(int connfd, int length) {
+    char recvline[MAXLINE + 1];
     size_t n;
     amqp_method *method;
 
@@ -135,6 +135,7 @@ amqp_content_header *parse_content_header(char *s, size_t n) {
 }
 
 amqp_content_header *read_content_header(int connfd, int length) {
+    char recvline[MAXLINE + 1];
     size_t n;
     amqp_content_header *header;
     n = read(connfd, recvline, length);
@@ -145,6 +146,7 @@ amqp_content_header *read_content_header(int connfd, int length) {
 }
 
 char *read_body(int connfd, int length) {
+    char recvline[MAXLINE + 1];
     int n = read(connfd, recvline, length + 1);
     char *body = malloc(length + 1);
     memcpy(body, recvline, n);
@@ -166,6 +168,7 @@ void send_method(
     size_t header_size = message_header_size + method_header_size;
 
     char unparsed[128];
+    char sendline[MAXLINE + 1];
 
     amqp_message_header message_header = {
         .msg_type = METHOD,
@@ -203,6 +206,8 @@ void send_content_header(
     size_t message_header_size = sizeof(amqp_message_header);
     size_t header_header_size = sizeof(amqp_content_header_header);
     size_t properties_size = bit_cardinality_16(flags);
+
+    char sendline[MAXLINE + 1];
 
     amqp_message_header message_header = {
         .msg_type = CONTENT_HEADER,
@@ -251,6 +256,8 @@ void send_body(
     ) {
 
     size_t message_header_size = sizeof(amqp_message_header);
+
+    char sendline[MAXLINE + 1];
 
     amqp_message_header message_header = {
         .msg_type = BODY,
