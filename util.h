@@ -1,8 +1,13 @@
+/* Util
+
+These are miscellaneous functions.
+*/
 #pragma once
 
 #include <stdint.h>
 #include <stdlib.h>
 
+/* Count the number of set bits in an 16 bit array. */
 int bit_cardinality_16(uint16_t bit_array);
 
 /* Make 64-bit little-endian numbers become big-endian and vice-versa.
