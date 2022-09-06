@@ -1,4 +1,5 @@
 .DS_Store
+ep1.dSYM
 ep1
 debug*
 *.o
