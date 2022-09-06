@@ -17,7 +17,13 @@ const amqp_protocol_header default_amqp_header = {
     .version_minor = 1
 };
 
-int parse_protocol_header(char *s, size_t n, amqp_protocol_header *header) {
+static int parse_protocol_header(char *, size_t, amqp_protocol_header *);
+static int parse_message_header(char *, size_t, amqp_message_header *);
+static void unparse_message_header(amqp_message_header, char *);
+static void unparse_method_header(amqp_method_header, char *);
+static void unparse_content_header_header(amqp_content_header_header, char *);
+
+static int parse_protocol_header(char *s, size_t n, amqp_protocol_header *header) {
     size_t header_size = sizeof(amqp_protocol_header);
 
     if (n < header_size) return 1;
@@ -30,7 +36,7 @@ int read_protocol_header(connection_state *cs, amqp_protocol_header *header) {
     return parse_protocol_header(cs->recvline, n, header);
 }
 
-int parse_message_header(char *s, size_t n, amqp_message_header *header) {
+static int parse_message_header(char *s, size_t n, amqp_message_header *header) {
     size_t header_size = sizeof(amqp_message_header);
 
     if (n < header_size) return 1;
@@ -41,7 +47,7 @@ int parse_message_header(char *s, size_t n, amqp_message_header *header) {
     return 0;
 }
 
-void unparse_message_header(amqp_message_header header, char *s) {
+static void unparse_message_header(amqp_message_header header, char *s) {
     header.channel = htons(header.channel);
     header.length = htonl(header.length);
 
@@ -56,25 +62,14 @@ int read_message_header(connection_state *cs, amqp_message_header *header) {
     return 0;
 }
 
-int parse_method_header(char *s, size_t n, amqp_method_header *header) {
-    size_t header_size = sizeof(amqp_method_header);
-
-    if (n < header_size) return 1;
-    memcpy(header, s, header_size);
-
-    header->class = ntohs(header->class);
-    header->method = ntohs(header->method);
-    return 0;
-}
-
-void unparse_method_header(amqp_method_header header, char *s) {
+static void unparse_method_header(amqp_method_header header, char *s) {
     header.class = htons(header.class);
     header.method = htons(header.method);
 
     memcpy(s, &header, sizeof(amqp_method_header));
 }
 
-amqp_method *parse_method(char *s, size_t n) {
+static amqp_method *parse_method(char *s, size_t n) {
     size_t header_size = sizeof(amqp_method_header);
     amqp_method *method;
 
@@ -101,7 +96,7 @@ amqp_method *read_method(connection_state *cs, int length) {
     return n == 0 ? NULL : method;
 }
 
-void unparse_content_header_header(
+static void unparse_content_header_header(
     amqp_content_header_header header,
     char *s
     ) {
@@ -113,7 +108,7 @@ void unparse_content_header_header(
     memcpy(s, &header, sizeof(header));
 }
 
-amqp_content_header *parse_content_header(char *s, size_t n) {
+static amqp_content_header *parse_content_header(char *s, size_t n) {
     size_t header_size = sizeof(amqp_content_header_header);
     amqp_content_header *content_header;
 
