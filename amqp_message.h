@@ -5,6 +5,7 @@
 
 #include "amqp_methods.h"
 #include "amqp_types.h"
+#include "connection_state.h"
 
 typedef struct {
     char amqp[4];
@@ -43,11 +44,11 @@ typedef struct {
 } __attribute__((packed)) amqp_content_header;
 
 int parse_protocol_header(char *s, size_t n, amqp_protocol_header *header);
-int read_protocol_header(int connfd, amqp_protocol_header *header);
+int read_protocol_header(connection_state *cs, amqp_protocol_header *header);
 
 int parse_message_header(char *s, size_t n, amqp_message_header *header);
 void unparse_message_header(amqp_message_header header, char *s);
-int read_message_header(int connfd, amqp_message_header *header);
+int read_message_header(connection_state *cs, amqp_message_header *header);
 
 int parse_method_header(char *s, size_t n, amqp_method_header *header);
 void unparse_method_header(amqp_method_header header, char *s);
@@ -57,15 +58,15 @@ void unparse_content_header_header(
     char *s
     );
 amqp_method *parse_method(char *s, size_t n);
-amqp_method *read_method(int connfd, int length);
+amqp_method *read_method(connection_state *cs, int length);
 
 amqp_content_header *parse_content_header(char *s, size_t n);
-amqp_content_header *read_content_header(int connfd, int length);
+amqp_content_header *read_content_header(connection_state *cs, int length);
 
-char *read_body(int connfd, int length);
+char *read_body(connection_state *cs, int length);
 
 void send_method(
-    int connfd,
+    connection_state *cs,
     class_id class,
     method_id method,
     uint16_t channel,
@@ -74,7 +75,7 @@ void send_method(
     );
 
 void send_content_header(
-    int connf,
+    connection_state *cs,
     uint16_t class,
     uint16_t channel,
     uint16_t weight,
@@ -84,7 +85,7 @@ void send_content_header(
     );
 
 void send_body(
-    int connfd,
+    connection_state *cs,
     int channel,
     char *payload,
     size_t n

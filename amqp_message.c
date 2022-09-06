@@ -25,10 +25,9 @@ int parse_protocol_header(char *s, size_t n, amqp_protocol_header *header) {
     return memcmp(header, &default_amqp_header, header_size);
 }
 
-int read_protocol_header(int connfd, amqp_protocol_header *header) {
-    char recvline[MAXLINE + 1];
-    size_t n = read(connfd, recvline, sizeof(header));
-    return parse_protocol_header(recvline, n, header);
+int read_protocol_header(connection_state *cs, amqp_protocol_header *header) {
+    size_t n = read(cs->connfd, cs->recvline, sizeof(header));
+    return parse_protocol_header(cs->recvline, n, header);
 }
 
 int parse_message_header(char *s, size_t n, amqp_message_header *header) {
@@ -49,11 +48,10 @@ void unparse_message_header(amqp_message_header header, char *s) {
     memcpy(s, &header, sizeof(amqp_message_header));
 }
 
-int read_message_header(int connfd, amqp_message_header *header) {
-    char recvline[MAXLINE + 1];
+int read_message_header(connection_state *cs, amqp_message_header *header) {
     size_t n;
-    n = read(connfd, recvline, sizeof(*header));
-    if (parse_message_header(recvline, n, header)) return 1;
+    n = read(cs->connfd, cs->recvline, sizeof(*header));
+    if (parse_message_header(cs->recvline, n, header)) return 1;
     log_message_header('C', *header);
     return 0;
 }
@@ -92,14 +90,13 @@ amqp_method *parse_method(char *s, size_t n) {
     return method;
 }
 
-amqp_method *read_method(int connfd, int length) {
-    char recvline[MAXLINE + 1];
+amqp_method *read_method(connection_state *cs, int length) {
     size_t n;
     amqp_method *method;
 
-    n = read(connfd, recvline, length);
-    method = parse_method(recvline, n);
-    n = read(connfd, recvline, 1);
+    n = read(cs->connfd, cs->recvline, length);
+    method = parse_method(cs->recvline, n);
+    n = read(cs->connfd, cs->recvline, 1);
 
     return n == 0 ? NULL : method;
 }
@@ -134,28 +131,26 @@ amqp_content_header *parse_content_header(char *s, size_t n) {
     return content_header;
 }
 
-amqp_content_header *read_content_header(int connfd, int length) {
-    char recvline[MAXLINE + 1];
+amqp_content_header *read_content_header(connection_state *cs, int length) {
     size_t n;
     amqp_content_header *header;
-    n = read(connfd, recvline, length);
-    header = parse_content_header(recvline, length);
-    n = read(connfd, recvline, 1);
+    n = read(cs->connfd, cs->recvline, length);
+    header = parse_content_header(cs->recvline, length);
+    n = read(cs->connfd, cs->recvline, 1);
 
     return n == 0 ? NULL : header;
 }
 
-char *read_body(int connfd, int length) {
-    char recvline[MAXLINE + 1];
-    int n = read(connfd, recvline, length + 1);
+char *read_body(connection_state *cs, int length) {
+    int n = read(cs->connfd, cs->recvline, length + 1);
     char *body = malloc(length + 1);
-    memcpy(body, recvline, n);
+    memcpy(body, cs->recvline, n);
     body[length] = '\0';
     return body;
 }
 
 void send_method(
-    int connfd,
+    connection_state *cs,
     class_id class,
     method_id method,
     uint16_t channel,
@@ -168,7 +163,6 @@ void send_method(
     size_t header_size = message_header_size + method_header_size;
 
     char unparsed[128];
-    char sendline[MAXLINE + 1];
 
     amqp_message_header message_header = {
         .msg_type = METHOD,
@@ -184,17 +178,17 @@ void send_method(
     unparse_message_header(message_header, unparsed);
     unparse_method_header(method_header, unparsed + message_header_size);
 
-    memcpy(sendline, unparsed, header_size);
-    memcpy(sendline + header_size, arguments, args_size);
+    memcpy(cs->sendline, unparsed, header_size);
+    memcpy(cs->sendline + header_size, arguments, args_size);
 
-    sendline[header_size + args_size] = 0xce;
-    write(connfd, sendline, header_size + args_size + 1);
+    cs->sendline[header_size + args_size] = 0xce;
+    write(cs->connfd, cs->sendline, header_size + args_size + 1);
 
     log_message_header('S', message_header);
 }
 
 void send_content_header(
-    int connfd,
+    connection_state *cs,
     uint16_t class,
     uint16_t channel,
     uint16_t weight,
@@ -206,8 +200,6 @@ void send_content_header(
     size_t message_header_size = sizeof(amqp_message_header);
     size_t header_header_size = sizeof(amqp_content_header_header);
     size_t properties_size = bit_cardinality_16(flags);
-
-    char sendline[MAXLINE + 1];
 
     amqp_message_header message_header = {
         .msg_type = CONTENT_HEADER,
@@ -222,26 +214,26 @@ void send_content_header(
         .property_flags = flags
     };
 
-    unparse_message_header(message_header, sendline);
+    unparse_message_header(message_header, cs->sendline);
     unparse_content_header_header(
         header_header,
-        sendline + message_header_size
+        cs->sendline + message_header_size
         );
 
-    memcpy(sendline + message_header_size + header_header_size,
+    memcpy(cs->sendline + message_header_size + header_header_size,
            properties,
            properties_size
         );
 
-    sendline[
+    cs->sendline[
         message_header_size +
         header_header_size +
         properties_size
         ] = 0xce;
 
     write(
-        connfd,
-        sendline,
+        cs->connfd,
+        cs->sendline,
         message_header_size + header_header_size + properties_size + 1
         );
 
@@ -249,7 +241,7 @@ void send_content_header(
 }
 
 void send_body(
-    int connfd,
+    connection_state *cs,
     int channel,
     char *payload,
     size_t n
@@ -257,21 +249,19 @@ void send_body(
 
     size_t message_header_size = sizeof(amqp_message_header);
 
-    char sendline[MAXLINE + 1];
-
     amqp_message_header message_header = {
         .msg_type = BODY,
         .channel = channel,
         .length = n
     };
 
-    unparse_message_header(message_header, sendline);
-    memcpy(sendline + message_header_size, payload, n);
-    sendline[message_header_size + n] = 0xce;
+    unparse_message_header(message_header, cs->sendline);
+    memcpy(cs->sendline + message_header_size, payload, n);
+    cs->sendline[message_header_size + n] = 0xce;
 
     write(
-        connfd,
-        sendline,
+        cs->connfd,
+        cs->sendline,
         message_header_size + n + 1
         );
 

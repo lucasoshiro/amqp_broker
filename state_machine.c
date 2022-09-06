@@ -8,14 +8,7 @@
 #include "amqp_methods.h"
 #include "log.h"
 #include "queue_pool.h"
-
-#define MAXLINE 4096
-
-typedef struct {
-    int connfd;
-    shared_state *ss;
-    char recvline[MAXLINE];
-} connection_state;
+#include "connection_state.h"
 
 // Actions
 
@@ -106,7 +99,7 @@ static machine_state action_wait(connection_state *cs) {
 
     log_state("WAITING HEADER");
 
-    if (read_protocol_header(cs->connfd, &header))
+    if (read_protocol_header(cs, &header))
         return FAIL;
 
     return HEADER_RECEIVED;
@@ -150,7 +143,7 @@ static machine_state action_header_received(connection_state *cs) {
     log_state("HEADER RECEIVED");
 
     send_method(
-        cs->connfd,
+        cs,
         CONNECTION,
         CONNECTION_START,
         0,
@@ -168,9 +161,9 @@ static machine_state action_wait_start_ok(connection_state *cs) {
 
     log_state("WAIT START OK");
 
-    if (read_message_header(cs->connfd, &message_header)) return FAIL;
+    if (read_message_header(cs, &message_header)) return FAIL;
 
-    method = read_method(cs->connfd, message_header.length);
+    method = read_method(cs, message_header.length);
 
     if (method->header.class != CONNECTION ||
         method->header.method != CONNECTION_START_OK)
@@ -188,7 +181,7 @@ static machine_state action_start_ok_received(connection_state *cs) {
     log_state("START OK RECEIVED");
 
     send_method(
-        cs->connfd,
+        cs,
         CONNECTION,
         CONNECTION_TUNE,
         0,
@@ -205,9 +198,9 @@ static machine_state action_wait_tune_ok(connection_state *cs) {
 
     log_state("WAIT TUNE OK");
 
-    if (read_message_header(cs->connfd, &message_header)) return FAIL;
+    if (read_message_header(cs, &message_header)) return FAIL;
 
-    method = read_method(cs->connfd, message_header.length);
+    method = read_method(cs, message_header.length);
 
     if (method->header.class != CONNECTION ||
         method->header.method != CONNECTION_TUNE_OK)
@@ -225,9 +218,9 @@ static machine_state action_wait_open_connection(connection_state *cs) {
 
     log_state("WAIT OPEN CONNECTION");
 
-    if (read_message_header(cs->connfd, &message_header)) return FAIL;
+    if (read_message_header(cs, &message_header)) return FAIL;
 
-    method = read_method(cs->connfd, message_header.length);
+    method = read_method(cs, message_header.length);
 
     if (method->header.class != CONNECTION ||
         method->header.method != CONNECTION_OPEN)
@@ -245,7 +238,7 @@ static machine_state action_open_connection_received(connection_state *cs) {
     log_state("OPEN CONNECTION RECEIVED");
 
     send_method(
-        cs->connfd,
+        cs,
         CONNECTION,
         CONNECTION_OPEN_OK,
         0,
@@ -262,7 +255,7 @@ static machine_state action_close_connection_received(connection_state *cs) {
     log_state("CLOSE CONNECTION RECEIVED");
 
     send_method(
-        cs->connfd,
+        cs,
         CONNECTION,
         CONNECTION_CLOSE_OK,
         0,
@@ -280,9 +273,9 @@ static machine_state action_wait_open_channel(connection_state *cs) {
 
     log_state("WAIT OPEN CHANNEL");
 
-    if (read_message_header(cs->connfd, &message_header)) return FAIL;
+    if (read_message_header(cs, &message_header)) return FAIL;
 
-    method = read_method(cs->connfd, message_header.length);
+    method = read_method(cs, message_header.length);
 
     switch (method->header.class) {
     case CHANNEL:
@@ -310,7 +303,7 @@ static machine_state action_open_channel_received(connection_state *cs) {
     log_state("OPEN CHANNEL RECEIVED");
 
     send_method(
-        cs->connfd,
+        cs,
         CHANNEL,
         CHANNEL_OPEN_OK,
         1,
@@ -327,7 +320,7 @@ static machine_state action_close_channel_received(connection_state *cs) {
     log_state("CLOSE CHANNEL RECEIVED");
 
     send_method(
-        cs->connfd,
+        cs,
         CHANNEL,
         CHANNEL_CLOSE_OK,
         1,
@@ -345,9 +338,9 @@ static machine_state action_wait_functional(connection_state *cs) {
 
     log_state("WAIT FUNCTIONAL");
 
-    if (read_message_header(cs->connfd, &message_header)) return FAIL;
+    if (read_message_header(cs, &message_header)) return FAIL;
 
-    method = read_method(cs->connfd, message_header.length);
+    method = read_method(cs, message_header.length);
 
     switch (method->header.class) {
     case CHANNEL:
@@ -389,7 +382,7 @@ static machine_state action_queue_declare_received(connection_state *cs) {
     create_queue(&cs->ss->pool, "cheetos");
 
     send_method(
-        cs->connfd,
+        cs,
         QUEUE,
         QUEUE_DECLARE_OK,
         1,
@@ -412,9 +405,9 @@ static machine_state action_wait_publish_content_header(connection_state *cs) {
 
     log_state("WAIT PUBLISH HEADER");
 
-    if (read_message_header(cs->connfd, &message_header)) return FAIL;
+    if (read_message_header(cs, &message_header)) return FAIL;
 
-    content_header = read_content_header(cs->connfd, message_header.length);
+    content_header = read_content_header(cs, message_header.length);
 
     free(content_header);
 
@@ -428,11 +421,11 @@ static machine_state action_wait_publish_content(connection_state *cs) {
     machine_state next_state = FAIL;
     log_state("WAIT PUBLISH CONTENT");
 
-    if (read_message_header(cs->connfd, &message_header)) return FAIL;
+    if (read_message_header(cs, &message_header)) return FAIL;
 
     switch (message_header.msg_type) {
     case METHOD:
-        method = read_method(cs->connfd, message_header.length);
+        method = read_method(cs, message_header.length);
         next_state =
             (method->header.class == CHANNEL &&
              method->header.method == CHANNEL_CLOSE)
@@ -441,7 +434,7 @@ static machine_state action_wait_publish_content(connection_state *cs) {
         free(method);
         break;
     case BODY:
-        body = read_body(cs->connfd, message_header.length);
+        body = read_body(cs, message_header.length);
 
         enqueue_to(&cs->ss->pool, "cheetos", body);
 
@@ -467,7 +460,7 @@ static machine_state action_basic_consume_received(connection_state *cs) {
     log_state("BASIC CONSUME RECEIVED");
 
     send_method(
-        cs->connfd,
+        cs,
         BASIC,
         BASIC_CONSUME_OK,
         1,
@@ -476,7 +469,7 @@ static machine_state action_basic_consume_received(connection_state *cs) {
         );
 
     send_method(
-        cs->connfd,
+        cs,
         BASIC,
         BASIC_DELIVER,
         1,
@@ -485,7 +478,7 @@ static machine_state action_basic_consume_received(connection_state *cs) {
         );
 
     send_content_header(
-        cs->connfd,
+        cs,
         BASIC,
         1,
         0,
@@ -514,7 +507,7 @@ static machine_state action_value_dequeue_received(connection_state *cs) {
     log_state("VALUE DEQUEUE RECEIVED");
 
     send_body(
-        cs->connfd,
+        cs,
         1,
         cs->recvline,
         strlen(cs->recvline)
