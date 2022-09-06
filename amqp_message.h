@@ -4,8 +4,10 @@
 #include <string.h>
 
 #include "amqp_methods.h"
-#include "amqp_types.h"
 #include "connection_state.h"
+
+typedef uint16_t class_id;
+typedef uint16_t method_id;
 
 typedef struct {
     char amqp[4];
