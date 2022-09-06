@@ -4,20 +4,78 @@ This file defines the data structures that hold incoming data from the client
 and outcoming data from this server. This also defines the functions that read
 and write those data from/to the client.
 
- */
-
+*/
 #pragma once
 
 #include <stdint.h>
 #include <string.h>
 
-#include "amqp_methods.h"
 #include "connection_state.h"
+
+/* AMQP types */
 
 typedef uint16_t class_id;
 typedef uint16_t method_id;
 
-/* Protocol header. The first amqp message that the client sends to the server. */
+/* AMQP constants */
+
+/* Message type. */
+enum msg_format {
+    METHOD = 1,
+    CONTENT_HEADER,
+    BODY,
+    HEARTBEAT
+};
+
+/* Method classes id. */
+enum class {
+    CONNECTION = 10,
+    CHANNEL    = 20,
+    EXCHANGE   = 40,
+    QUEUE      = 50,
+    BASIC      = 60,
+    TX         = 80
+};
+
+/* Methods id. When two or more of them share the same number, their classes
+   differ. */
+enum method {
+    /* Connection methods */
+    CONNECTION_START = 10,
+    CONNECTION_START_OK,
+
+    CONNECTION_TUNE = 30,
+    CONNECTION_TUNE_OK,
+
+    CONNECTION_OPEN = 40,
+    CONNECTION_OPEN_OK,
+
+    CONNECTION_CLOSE = 50,
+    CONNECTION_CLOSE_OK,
+
+    /* Channel methods. */
+    CHANNEL_OPEN = 10,
+    CHANNEL_OPEN_OK,
+
+    CHANNEL_CLOSE = 40,
+    CHANNEL_CLOSE_OK,
+
+    /* Queue methods. */
+    QUEUE_DECLARE = 10,
+    QUEUE_DECLARE_OK,
+
+    /* Basic methods */
+    BASIC_CONSUME = 20,
+    BASIC_CONSUME_OK,
+    BASIC_PUBLISH = 40,
+    BASIC_DELIVER = 60,
+    BASIC_ACK     = 80
+};
+
+/* AMQP messsages data structures. */
+
+/* Protocol header. The first amqp message that the client sends to the server.
+ */
 typedef struct {
     char amqp[4];
     uint8_t id_major;

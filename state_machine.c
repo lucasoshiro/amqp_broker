@@ -5,7 +5,6 @@
 #include <string.h>
 
 #include "amqp_message.h"
-#include "amqp_methods.h"
 #include "log.h"
 #include "queue_pool.h"
 #include "connection_state.h"
