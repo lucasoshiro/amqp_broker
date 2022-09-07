@@ -48,11 +48,14 @@
 #define MAXDATASIZE 100
 #define MAXLINE 4096
 
+typedef struct {
+    int connfd;
+    shared_state *ss;
+    pthread_t *thread;
+} connection_thread_args;
+
 void *connection_thread_main(void *_args) {
-    struct {
-        int connfd;
-        shared_state *ss;
-    } *args = _args;
+    connection_thread_args *args = _args;
 
     printf("[Uma conexão aberta]\n");    
     state_machine_main(args->connfd, args->ss);
@@ -124,10 +127,7 @@ int main (int argc, char **argv) {
      * conexões e processamento de cada uma individualmente */
     for (;;) {
         pthread_t thread;
-        struct {
-            int connfd;
-            shared_state *ss;
-        } args;
+        connection_thread_args args;
 
         /* O socket inicial que foi criado é o socket que vai aguardar
          * pela conexão na porta especificada. Mas pode ser que existam
@@ -143,6 +143,7 @@ int main (int argc, char **argv) {
       
         args.connfd = connfd;
         args.ss = &ss;
+        args.thread = &thread;
         pthread_create(&thread, NULL, connection_thread_main, &args);
     }
 
