@@ -23,6 +23,8 @@ void q_enqueue(queue *q, char *body) {
     n->length = length;
     strcpy(n->body, body);
     
+    pthread_mutex_lock(&q->mutex);
+
     if (q->first_node != NULL)
         q->first_node->parent = n;
 
@@ -31,12 +33,16 @@ void q_enqueue(queue *q, char *body) {
     if (q->last_node == NULL)
         q->last_node = n;
     q->size += 1;
+
+    pthread_mutex_unlock(&q->mutex);
 }
 
 char *q_dequeue(queue *q) {
-    q_node *last = q->last_node;
+    q_node *last;
     char *ret = NULL;
 
+    pthread_mutex_lock(&q->mutex);
+    last = q->last_node;
     if (last) {
         int length = last->length;
         ret = malloc(sizeof(char) * (1 + length));
@@ -50,6 +56,7 @@ char *q_dequeue(queue *q) {
         q->size -= 1;
     }
 
+    pthread_mutex_unlock(&q->mutex);
     return ret;
 }
 
