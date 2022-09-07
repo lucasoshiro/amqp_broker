@@ -39,6 +39,7 @@ static machine_state action_wait_publish_content(connection_state *);
 static machine_state action_basic_consume_received(connection_state *);
 static machine_state action_wait_value_dequeue(connection_state *);
 static machine_state action_value_dequeue_received(connection_state *);
+static machine_state action_wait_consume_ack(connection_state *);
 
 // No operation
 static machine_state action_noop(connection_state *);
@@ -72,6 +73,7 @@ machine_state (*actions[NUM_STATES])(connection_state *) = {
     action_basic_consume_received,
     action_wait_value_dequeue,
     action_value_dequeue_received,
+    action_wait_consume_ack,
 
     // Finish
     action_noop,
@@ -85,7 +87,7 @@ void state_machine_main(int connfd, shared_state *ss) {
         .connfd = connfd,
         .ss = ss
     };
-    
+
     while (m != FINISHED && m != FAIL) {
         m = actions[m](&cs);
         if (m == FAIL)
@@ -448,14 +450,6 @@ static machine_state action_wait_publish_content(connection_state *cs) {
 static machine_state action_basic_consume_received(connection_state *cs) {
     char dummy_argument_str[] = "\x00\x00\x00\x00\x00\x00\x00\x01\x00";
 
-    char dummy_deliver_argument_str[] =
-        "\x1f\x61\x6d\x71\x2e\x63\x74\x61\x67\x2d\x56\x64\x34\x59\x53\x35"
-        "\x52\x49\x32\x34\x5f\x2d\x71\x48\x68\x61\x6e\x51\x4e\x51\x4a\x67"
-        "\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x07\x63\x68\x65\x65\x74"
-        "\x6f\x73";
-
-    char dummy_content_header_properties[] = "\x01";
-
     log_state("BASIC CONSUME RECEIVED");
 
     send_method(
@@ -466,6 +460,37 @@ static machine_state action_basic_consume_received(connection_state *cs) {
         dummy_argument_str,
         13
         );
+
+    return WAIT_VALUE_DEQUEUE;
+}
+
+static machine_state action_wait_value_dequeue(connection_state *cs) {
+    char *s;
+
+    log_state("WAIT VALUE DEQUEUE");
+
+    while (queue_size(&cs->ss->pool, "cheetos") == 0)
+        sleep(1);
+
+    s = dequeue_from(&cs->ss->pool, "cheetos");
+    strcpy(cs->recvline, s);
+    free(s);
+
+    return VALUE_DEQUEUE_RECEIVED;
+}
+
+static machine_state action_value_dequeue_received(connection_state *cs) {
+    char dummy_deliver_argument_str[] =
+        "\x1f\x61\x6d\x71\x2e\x63\x74\x61\x67\x2d\x56\x64\x34\x59\x53\x35"
+        "\x52\x49\x32\x34\x5f\x2d\x71\x48\x68\x61\x6e\x51\x4e\x51\x4a\x67"
+        "\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x07\x63\x68\x65\x65\x74"
+        "\x6f\x73";
+
+    char dummy_content_header_properties[] = "\x01";
+
+    size_t body_size = strlen(cs->recvline);
+
+    log_state("VALUE DEQUEUE RECEIVED");
 
     send_method(
         cs,
@@ -481,29 +506,10 @@ static machine_state action_basic_consume_received(connection_state *cs) {
         BASIC,
         1,
         0,
-        6,
+        body_size,
         0x1000,
         dummy_content_header_properties
         );
-
-    return WAIT_VALUE_DEQUEUE;
-}
-
-static machine_state action_wait_value_dequeue(connection_state *cs) {
-    char *s;
-
-    while (queue_size(&cs->ss->pool, "cheetos") == 0)
-        sleep(1);
-
-    s = dequeue_from(&cs->ss->pool, "cheetos");
-    strcpy(cs->recvline, s);
-    free(s);
-
-    return VALUE_DEQUEUE_RECEIVED;
-}
-
-static machine_state action_value_dequeue_received(connection_state *cs) {
-    log_state("VALUE DEQUEUE RECEIVED");
 
     send_body(
         cs,
@@ -512,7 +518,28 @@ static machine_state action_value_dequeue_received(connection_state *cs) {
         strlen(cs->recvline)
         );
 
-    return WAIT_VALUE_DEQUEUE;
+    return WAIT_CONSUME_ACK;
+}
+
+static machine_state action_wait_consume_ack(connection_state * cs) {
+    amqp_message_header message_header;
+    amqp_method *method;
+    machine_state next_state = FAIL;
+
+    log_state("WAIT CONSUME ACK");
+
+    if (read_message_header(cs, &message_header)) return FAIL;
+
+    method = read_method(cs, message_header.length);
+
+    if (method->header.class != BASIC ||
+        method->header.method != BASIC_ACK)
+        next_state = FAIL;
+    else
+        next_state = WAIT_VALUE_DEQUEUE;
+
+    free(method);
+    return next_state;
 }
 
 static machine_state action_noop(connection_state *cs) {

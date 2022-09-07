@@ -45,6 +45,7 @@ typedef enum machine_state {
     BASIC_CONSUME_RECEIVED,
     WAIT_VALUE_DEQUEUE,
     VALUE_DEQUEUE_RECEIVED,
+    WAIT_CONSUME_ACK,
 
     /* Finish states */
     FINISHED,
