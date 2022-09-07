@@ -69,3 +69,12 @@ void free_queue(queue *q) {
 
     free(q);
 }
+
+int q_size(queue *q) {
+    int size;
+    pthread_mutex_lock(&q->mutex);
+    size = q->size;
+    pthread_mutex_unlock(&q->mutex);
+
+    return size;
+}

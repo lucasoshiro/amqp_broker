@@ -45,3 +45,6 @@ char *q_dequeue(queue *q);
 
 /* Free a queue and its values. */
 void free_queue(queue *q);
+
+/* Size of a queue. */
+int q_size(queue *q);

@@ -10,10 +10,12 @@
  */
 #pragma once
 #include "queue.h"
+#include <pthread.h>
 
 /* A trie node, containing a queue and pointers to the 256 children. */
 typedef struct trie_node {
     queue *q;
+    pthread_mutex_t mutex;
     struct trie_node *children[256];
 } trie_node;
 
