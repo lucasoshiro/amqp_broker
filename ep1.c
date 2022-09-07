@@ -58,7 +58,7 @@ void *connection_thread_main(void *_args) {
     connection_thread_args *args = _args;
 
     printf("[Uma conexão aberta]\n");    
-    state_machine_main(args->connfd, args->ss);
+    state_machine_main(args->connfd, args->thread, args->ss);
     printf("[Uma conexão fechada]\n");
     close(args->connfd);
     return NULL;
