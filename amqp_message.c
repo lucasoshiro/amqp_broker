@@ -33,7 +33,7 @@ static int parse_protocol_header(char *s, size_t n, amqp_protocol_header *header
 }
 
 int read_protocol_header(connection_state *cs, amqp_protocol_header *header) {
-    size_t n = read_until(cs->connfd, cs->recvline, sizeof(header));
+    size_t n = read_until(cs->connfd, cs->recvline, sizeof(*header));
     return parse_protocol_header(cs->recvline, n, header);
 }
 
