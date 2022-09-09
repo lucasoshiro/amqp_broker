@@ -31,6 +31,14 @@ static size_t fill_short_string(char *str, amqp_short_string *amqp_str) {
     return size;
 }
 
+void parse_queue_declare_args(void *args, char *queue_name) {
+    char *args_str = args;
+    amqp_short_string *short_str = (void *) (args_str + 2); /* Drop ticket */
+    strncpy(queue_name, short_str->str, short_str->size);
+
+    queue_name[short_str->size] = '\0';
+}
+
 static int parse_protocol_header(char *s, size_t n, amqp_protocol_header *header) {
     size_t header_size = sizeof(amqp_protocol_header);
 
@@ -86,7 +94,7 @@ static amqp_method *parse_method(char *s, size_t n) {
 
     method = malloc(n);
 
-    memcpy(method, s, header_size);
+    memcpy(method, s, header_size + n - 1);
 
     method->header.class = ntohs(method->header.class);
     method->header.method = ntohs(method->header.method);

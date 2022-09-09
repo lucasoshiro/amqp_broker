@@ -88,7 +88,7 @@ void state_machine_main(int connfd, shared_state *ss) {
         .ss = ss
     };
 
-    strcpy(cs.current_queue_name, "cheetos");
+    cs.current_queue_name[0] = '\0';
 
     while (m != FINISHED && m != FAIL) {
         m = actions[m](&cs);
@@ -356,6 +356,7 @@ static machine_state action_wait_functional(connection_state *cs) {
     case QUEUE:
         switch (method->header.method) {
         case QUEUE_DECLARE:
+            parse_queue_declare_args(method->arguments, cs->current_queue_name);
             create_queue(&cs->ss->pool, cs->current_queue_name);
             next_state = QUEUE_DECLARE_RECEIVED;
             break;

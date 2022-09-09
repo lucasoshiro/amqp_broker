@@ -16,6 +16,18 @@ and write those data from/to the client.
 typedef uint16_t class_id;
 typedef uint16_t method_id;
 
+/* Short string */
+typedef struct {
+    uint8_t size;
+    char str[1];
+} __attribute__((packed)) amqp_short_string;
+
+/* Long string */
+typedef struct {
+    uint32_t size;
+    char str[1];
+} __attribute__((packed)) amqp_long_string;
+
 /* AMQP constants */
 
 /* Message type. */
@@ -119,15 +131,9 @@ typedef struct {
     char property_list[1];
 } __attribute__((packed)) amqp_content_header;
 
-typedef struct {
-    uint8_t size;
-    char str[1];
-} __attribute__((packed)) amqp_short_string;
-
-typedef struct {
-    uint32_t size;
-    char str[1];
-} __attribute__((packed)) amqp_long_string;
+/* Fill queue_name with the queue name in queue declare args. Other args
+ are ignored. */
+void parse_queue_declare_args(void *args, char *queue_name);
 
 /* Read an amqp protocol header. This is the first thing that the client sends
    after stablishing a connection with an amqp server. Fill the
