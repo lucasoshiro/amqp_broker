@@ -166,7 +166,8 @@ static machine_state action_wait_start_ok(connection_state *cs) {
 
     if (read_message_header(cs, &message_header)) return FAIL;
 
-    method = read_method(cs, message_header.length);
+    if ((method = read_method(cs, message_header.length)) == NULL)
+        return FAIL;
 
     if (method->header.class != CONNECTION ||
         method->header.method != CONNECTION_START_OK)
@@ -203,7 +204,8 @@ static machine_state action_wait_tune_ok(connection_state *cs) {
 
     if (read_message_header(cs, &message_header)) return FAIL;
 
-    method = read_method(cs, message_header.length);
+    if ((method = read_method(cs, message_header.length)) == NULL)
+        return FAIL;
 
     if (method->header.class != CONNECTION ||
         method->header.method != CONNECTION_TUNE_OK)
@@ -223,7 +225,8 @@ static machine_state action_wait_open_connection(connection_state *cs) {
 
     if (read_message_header(cs, &message_header)) return FAIL;
 
-    method = read_method(cs, message_header.length);
+    if ((method = read_method(cs, message_header.length)) == NULL)
+        return FAIL;
 
     if (method->header.class != CONNECTION ||
         method->header.method != CONNECTION_OPEN)
@@ -278,7 +281,8 @@ static machine_state action_wait_open_channel(connection_state *cs) {
 
     if (read_message_header(cs, &message_header)) return FAIL;
 
-    method = read_method(cs, message_header.length);
+    if ((method = read_method(cs, message_header.length)) == NULL)
+        return FAIL;
 
     switch (method->header.class) {
     case CHANNEL:
@@ -343,7 +347,8 @@ static machine_state action_wait_functional(connection_state *cs) {
 
     if (read_message_header(cs, &message_header)) return FAIL;
 
-    method = read_method(cs, message_header.length);
+    if ((method = read_method(cs, message_header.length)) == NULL)
+        return FAIL;
 
     switch (method->header.class) {
     case CHANNEL:
@@ -430,7 +435,8 @@ static machine_state action_wait_publish_content(connection_state *cs) {
 
     switch (message_header.msg_type) {
     case METHOD:
-        method = read_method(cs, message_header.length);
+        if ((method = read_method(cs, message_header.length)) == NULL)
+        return FAIL;
         next_state =
             (method->header.class == CHANNEL &&
              method->header.method == CHANNEL_CLOSE)
@@ -534,7 +540,8 @@ static machine_state action_wait_consume_ack(connection_state * cs) {
 
     if (read_message_header(cs, &message_header)) return FAIL;
 
-    method = read_method(cs, message_header.length);
+    if ((method = read_method(cs, message_header.length)) == NULL)
+        return FAIL;
 
     if (method->header.class != BASIC ||
         method->header.method != BASIC_ACK)

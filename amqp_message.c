@@ -127,11 +127,16 @@ amqp_method *read_method(connection_state *cs, int length) {
     size_t n;
     amqp_method *method;
 
-    n = read_until(cs->connfd, cs->recvline, length);
-    method = parse_method(cs->recvline, n);
-    n = read_until(cs->connfd, cs->recvline, 1);
+    if ((n = read_until(cs->connfd, cs->recvline, length)) == 0)
+        return NULL;
 
-    return n == 0 ? NULL : method;
+    if ((method = parse_method(cs->recvline, n)) == NULL)
+        return NULL;
+
+    if (read_until(cs->connfd, cs->recvline, 1) == 0)
+        return NULL;
+
+    return method;
 }
 
 void send_method(
