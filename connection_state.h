@@ -9,5 +9,6 @@ typedef struct {
     shared_state *ss;
     char recvline[MAXLINE];
     char sendline[MAXLINE];
+    char current_queue_name[MAXLINE];
 } connection_state;
 

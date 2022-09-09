@@ -13,7 +13,6 @@ and write those data from/to the client.
 #include "connection_state.h"
 
 /* AMQP types */
-
 typedef uint16_t class_id;
 typedef uint16_t method_id;
 
@@ -120,6 +119,15 @@ typedef struct {
     char property_list[1];
 } __attribute__((packed)) amqp_content_header;
 
+typedef struct {
+    uint8_t size;
+    char str[1];
+} __attribute__((packed)) amqp_short_string;
+
+typedef struct {
+    uint32_t size;
+    char str[1];
+} __attribute__((packed)) amqp_long_string;
 
 /* Read an amqp protocol header. This is the first thing that the client sends
    after stablishing a connection with an amqp server. Fill the
@@ -137,21 +145,6 @@ int read_message_header(connection_state *cs, amqp_message_header *header);
 */
 amqp_method *read_method(connection_state *cs, int length);
 
-/* Read a "content header" message, malloc an amqp_content_header, copy the data
-   from the content header to the amqp_content_header, then return a pointer to
-   it.
-
-   The length of the message (except its header) is required.
-*/
-amqp_content_header *read_content_header(connection_state *cs, int length);
-
-/* Read a "body" amqp message, malloc a string, copy body payload to the string,
-   then return a pointer to the string.
-
-   The length of the body is required.
-*/
-char *read_body(connection_state *cs, int length);
-
 /* Send a "method" amqp message, given its class id, method id, channel and
    arguments.
 
@@ -167,6 +160,22 @@ void send_method(
     size_t args_size
     );
 
+void send_queue_declare_ok(
+    connection_state *cs,
+    uint16_t channel,
+    char *queue_name,
+    uint32_t message_count,
+    uint32_t consumer_count
+    );
+
+/* Read a "content header" message, malloc an amqp_content_header, copy the data
+   from the content header to the amqp_content_header, then return a pointer to
+   it.
+
+   The length of the message (except its header) is required.
+*/
+amqp_content_header *read_content_header(connection_state *cs, int length);
+
 /* Send a "content header" amqp message, given its class id, channel, weight,
    body size, flags and properties */
 void send_content_header(
@@ -179,6 +188,13 @@ void send_content_header(
     char *properties
     );
 
+/* Read a "body" amqp message, malloc a string, copy body payload to the string,
+   then return a pointer to the string.
+
+   The length of the body is required.
+*/
+char *read_body(connection_state *cs, int length);
+
 /* Send a payload of size n as a "body" amqp message. */
 void send_body(
     connection_state *cs,
@@ -186,3 +202,4 @@ void send_body(
     char *payload,
     size_t n
     );
+

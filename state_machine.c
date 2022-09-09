@@ -88,6 +88,8 @@ void state_machine_main(int connfd, shared_state *ss) {
         .ss = ss
     };
 
+    strcpy(cs.current_queue_name, "cheetos");
+
     while (m != FINISHED && m != FAIL) {
         m = actions[m](&cs);
         if (m == FAIL)
@@ -354,6 +356,7 @@ static machine_state action_wait_functional(connection_state *cs) {
     case QUEUE:
         switch (method->header.method) {
         case QUEUE_DECLARE:
+            create_queue(&cs->ss->pool, cs->current_queue_name);
             next_state = QUEUE_DECLARE_RECEIVED;
             break;
         }
@@ -376,19 +379,16 @@ static machine_state action_wait_functional(connection_state *cs) {
 }
 
 static machine_state action_queue_declare_received(connection_state *cs) {
-    char dummy_argument_str[] = "\x07\x63\x68\x65\x65\x74\x6f\x73\x00\x00\x00\x00\x00\x00\x00\x00";
-
     log_state("QUEUE DECLARE RECEIVED");
 
-    create_queue(&cs->ss->pool, "cheetos");
+    int q_size = queue_size(&cs->ss->pool, cs->current_queue_name);
 
-    send_method(
+    send_queue_declare_ok(
         cs,
-        QUEUE,
-        QUEUE_DECLARE_OK,
-        1,
-        dummy_argument_str,
-        16
+        1,                      /* TODO: CHANGE IT!!! */
+        cs->current_queue_name,
+        q_size,
+        0                       /* TODO: CHANGE IT!!! */
         );
 
     return WAIT_FUNCTIONAL;
