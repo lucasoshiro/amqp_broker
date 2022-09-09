@@ -135,6 +135,14 @@ typedef struct {
  are ignored. */
 void parse_queue_declare_args(void *args, char *queue_name);
 
+/* Fill queue_name with the queue name in queue declare args. Other args
+ are ignored. */
+void parse_basic_publish_args(void *args, char *queue_name);
+
+/* Fill queue_name with the queue name in queue declare args. Other args
+ are ignored. */
+void parse_basic_consume_args(void *args, char *queue_name);
+
 /* Read an amqp protocol header. This is the first thing that the client sends
    after stablishing a connection with an amqp server. Fill the
    amqp_protocol_header pointed by the argument header with is content. */

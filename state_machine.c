@@ -366,9 +366,12 @@ static machine_state action_wait_functional(connection_state *cs) {
     case BASIC:
         switch (method->header.method) {
         case BASIC_PUBLISH:
+            parse_basic_publish_args(method->arguments, cs->current_queue_name);
             next_state = BASIC_PUBLISH_RECEIVED;
             break;
+
         case BASIC_CONSUME:
+            parse_basic_consume_args(method->arguments, cs->current_queue_name);
             next_state = BASIC_CONSUME_RECEIVED;
             break;
         }
@@ -438,7 +441,7 @@ static machine_state action_wait_publish_content(connection_state *cs) {
     case BODY:
         body = read_body(cs, message_header.length);
 
-        enqueue_to(&cs->ss->pool, "cheetos", body);
+        enqueue_to(&cs->ss->pool, cs->current_queue_name, body);
 
         next_state = WAIT_PUBLISH_CONTENT;
         free(body);
@@ -470,10 +473,10 @@ static machine_state action_wait_value_dequeue(connection_state *cs) {
 
     log_state("WAIT VALUE DEQUEUE");
 
-    while (queue_size(&cs->ss->pool, "cheetos") == 0)
+    while (queue_size(&cs->ss->pool, cs->current_queue_name) == 0)
         sleep(1);
 
-    s = dequeue_from(&cs->ss->pool, "cheetos");
+    s = dequeue_from(&cs->ss->pool, cs->current_queue_name);
     strcpy(cs->recvline, s);
     free(s);
 

@@ -39,6 +39,27 @@ void parse_queue_declare_args(void *args, char *queue_name) {
     queue_name[short_str->size] = '\0';
 }
 
+void parse_basic_publish_args(void *args, char *queue_name) {
+    char *args_str = args;
+    amqp_short_string *exchange_short_str =
+        (void *) (args_str + 2);                            /* Drop ticket */
+
+    amqp_short_string *queue_short_str =
+        (void *) (args_str + 3 + exchange_short_str->size); /* Drop tick and exchange */
+
+    strncpy(queue_name, queue_short_str->str, queue_short_str->size);
+
+    queue_name[queue_short_str->size] = '\0';
+}
+
+void parse_basic_consume_args(void *args, char *queue_name) {
+    char *args_str = args;
+    amqp_short_string *short_str = (void *) (args_str + 2); /* Drop ticket and exchange*/
+    strncpy(queue_name, short_str->str, short_str->size);
+
+    queue_name[short_str->size] = '\0';
+}
+
 static int parse_protocol_header(char *s, size_t n, amqp_protocol_header *header) {
     size_t header_size = sizeof(amqp_protocol_header);
 
