@@ -18,3 +18,4 @@ int bit_cardinality_16(uint16_t bit_array);
  */
 uint64_t swipe_endianness_64(uint64_t n);
 
+size_t read_until(int fildes, void *buf, size_t size);

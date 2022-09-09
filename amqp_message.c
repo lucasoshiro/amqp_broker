@@ -28,11 +28,12 @@ static int parse_protocol_header(char *s, size_t n, amqp_protocol_header *header
 
     if (n < header_size) return 1;
     memcpy(header, s, header_size);
+    
     return memcmp(header, &default_amqp_header, header_size);
 }
 
 int read_protocol_header(connection_state *cs, amqp_protocol_header *header) {
-    size_t n = read(cs->connfd, cs->recvline, sizeof(header));
+    size_t n = read_until(cs->connfd, cs->recvline, sizeof(header));
     return parse_protocol_header(cs->recvline, n, header);
 }
 
@@ -56,7 +57,7 @@ static void unparse_message_header(amqp_message_header header, char *s) {
 
 int read_message_header(connection_state *cs, amqp_message_header *header) {
     size_t n;
-    n = read(cs->connfd, cs->recvline, sizeof(*header));
+    n = read_until(cs->connfd, cs->recvline, sizeof(*header));
     if (parse_message_header(cs->recvline, n, header)) return 1;
     log_message_header('C', *header);
     return 0;
@@ -89,9 +90,9 @@ amqp_method *read_method(connection_state *cs, int length) {
     size_t n;
     amqp_method *method;
 
-    n = read(cs->connfd, cs->recvline, length);
+    n = read_until(cs->connfd, cs->recvline, length);
     method = parse_method(cs->recvline, n);
-    n = read(cs->connfd, cs->recvline, 1);
+    n = read_until(cs->connfd, cs->recvline, 1);
 
     return n == 0 ? NULL : method;
 }
@@ -129,15 +130,15 @@ static amqp_content_header *parse_content_header(char *s, size_t n) {
 amqp_content_header *read_content_header(connection_state *cs, int length) {
     size_t n;
     amqp_content_header *header;
-    n = read(cs->connfd, cs->recvline, length);
+    n = read_until(cs->connfd, cs->recvline, length);
     header = parse_content_header(cs->recvline, length);
-    n = read(cs->connfd, cs->recvline, 1);
+    n = read_until(cs->connfd, cs->recvline, 1);
 
     return n == 0 ? NULL : header;
 }
 
 char *read_body(connection_state *cs, int length) {
-    int n = read(cs->connfd, cs->recvline, length + 1);
+    int n = read_until(cs->connfd, cs->recvline, length + 1);
     char *body = malloc(length + 1);
     memcpy(body, cs->recvline, n);
     body[length] = '\0';

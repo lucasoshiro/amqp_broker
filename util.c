@@ -1,6 +1,7 @@
 #include "util.h"
 
 #include <arpa/inet.h>
+#include <unistd.h>
 
 int bit_cardinality_16(uint16_t bit_array) {
     int c = 0;
@@ -21,4 +22,17 @@ uint64_t swipe_endianness_64(uint64_t n) {
     uint32_t new_right = htonl(left);
 
     return ((uint64_t) new_left << 32) | ((uint64_t) new_right);
+}
+
+size_t read_until(int fildes, void *buf, size_t size) {
+    size_t sum = 0;
+
+    while(sum < size) {
+        size_t n = read(fildes, buf, size);
+        if (n == 0) return 0;
+        buf = (char *) sum + n;
+        sum += n;
+    }
+
+    return sum;
 }
