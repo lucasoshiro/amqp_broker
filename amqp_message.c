@@ -96,7 +96,7 @@ int read_message_header(connection_state *cs, amqp_message_header *header) {
     size_t n;
     n = read_until(cs->connfd, cs->recvline, sizeof(*header));
     if (parse_message_header(cs->recvline, n, header)) return 1;
-    log_message_header('C', *header);
+    log_message_header('C', *header, cs);
     return 0;
 }
 
@@ -174,7 +174,7 @@ void send_method(
     cs->sendline[header_size + args_size] = 0xce;
     write(cs->connfd, cs->sendline, header_size + args_size + 1);
 
-    log_message_header('S', message_header);
+    log_message_header('S', message_header, cs);
 }
 
 void send_queue_declare_ok(
@@ -301,7 +301,7 @@ void send_content_header(
         message_header_size + header_header_size + properties_size + 1
         );
 
-    log_message_header('S', message_header);
+    log_message_header('S', message_header, cs);
 }
 
 char *read_body(connection_state *cs, int length) {
@@ -337,5 +337,5 @@ void send_body(
         message_header_size + n + 1
         );
 
-    log_message_header('S', message_header);
+    log_message_header('S', message_header, cs);
 }

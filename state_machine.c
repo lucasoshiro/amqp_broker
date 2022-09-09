@@ -102,7 +102,7 @@ void state_machine_main(int connfd, pthread_t *thread, shared_state *ss) {
 static machine_state action_wait(connection_state *cs) {
     amqp_protocol_header header;
 
-    log_state("WAITING HEADER");
+    log_state("WAITING HEADER", cs);
 
     if (read_protocol_header(cs, &header))
         return FAIL;
@@ -111,7 +111,7 @@ static machine_state action_wait(connection_state *cs) {
 }
 
 static machine_state action_header_received(connection_state *cs) {
-    log_state("HEADER RECEIVED");
+    log_state("HEADER RECEIVED", cs);
 
     send_method(
         cs,
@@ -130,7 +130,7 @@ static machine_state action_wait_start_ok(connection_state *cs) {
     amqp_method *method;
     machine_state next_state;
 
-    log_state("WAIT START OK");
+    log_state("WAIT START OK", cs);
 
     if (read_message_header(cs, &message_header)) return FAIL;
 
@@ -148,7 +148,7 @@ static machine_state action_wait_start_ok(connection_state *cs) {
 }
 
 static machine_state action_start_ok_received(connection_state *cs) {
-    log_state("START OK RECEIVED");
+    log_state("START OK RECEIVED", cs);
 
     send_method(
         cs,
@@ -166,7 +166,7 @@ static machine_state action_wait_tune_ok(connection_state *cs) {
     amqp_method *method;
     machine_state next_state;
 
-    log_state("WAIT TUNE OK");
+    log_state("WAIT TUNE OK", cs);
 
     if (read_message_header(cs, &message_header)) return FAIL;
 
@@ -187,7 +187,7 @@ static machine_state action_wait_open_connection(connection_state *cs) {
     amqp_method *method;
     machine_state next_state;
 
-    log_state("WAIT OPEN CONNECTION");
+    log_state("WAIT OPEN CONNECTION", cs);
 
     if (read_message_header(cs, &message_header)) return FAIL;
 
@@ -205,7 +205,7 @@ static machine_state action_wait_open_connection(connection_state *cs) {
 }
 
 static machine_state action_open_connection_received(connection_state *cs) {
-    log_state("OPEN CONNECTION RECEIVED");
+    log_state("OPEN CONNECTION RECEIVED", cs);
 
     send_method(
         cs,
@@ -220,7 +220,7 @@ static machine_state action_open_connection_received(connection_state *cs) {
 }
 
 static machine_state action_close_connection_received(connection_state *cs) {
-    log_state("CLOSE CONNECTION RECEIVED");
+    log_state("CLOSE CONNECTION RECEIVED", cs);
 
     send_method(
         cs,
@@ -239,7 +239,7 @@ static machine_state action_wait_open_channel(connection_state *cs) {
     amqp_method *method;
     machine_state next_state = FAIL;
 
-    log_state("WAIT OPEN CHANNEL");
+    log_state("WAIT OPEN CHANNEL", cs);
 
     if (read_message_header(cs, &message_header)) return FAIL;
 
@@ -267,7 +267,7 @@ static machine_state action_wait_open_channel(connection_state *cs) {
 }
 
 static machine_state action_open_channel_received(connection_state *cs) {
-    log_state("OPEN CHANNEL RECEIVED");
+    log_state("OPEN CHANNEL RECEIVED", cs);
 
     send_method(
         cs,
@@ -282,7 +282,7 @@ static machine_state action_open_channel_received(connection_state *cs) {
 }
 
 static machine_state action_close_channel_received(connection_state *cs) {
-    log_state("CLOSE CHANNEL RECEIVED");
+    log_state("CLOSE CHANNEL RECEIVED", cs);
 
     send_method(
         cs,
@@ -301,7 +301,7 @@ static machine_state action_wait_functional(connection_state *cs) {
     amqp_method *method;
     machine_state next_state = FAIL;
 
-    log_state("WAIT FUNCTIONAL");
+    log_state("WAIT FUNCTIONAL", cs);
 
     if (read_message_header(cs, &message_header)) return FAIL;
 
@@ -353,7 +353,7 @@ static machine_state action_wait_functional(connection_state *cs) {
 }
 
 static machine_state action_queue_declare_received(connection_state *cs) {
-    log_state("QUEUE DECLARE RECEIVED");
+    log_state("QUEUE DECLARE RECEIVED", cs);
 
     int q_size = queue_size(&cs->ss->pool, cs->current_queue_name);
 
@@ -370,7 +370,7 @@ static machine_state action_queue_declare_received(connection_state *cs) {
 
 static machine_state action_basic_publish_received(connection_state *cs) {
     (void) cs;
-    log_state("BASIC PUBLISH RECEIVED");
+    log_state("BASIC PUBLISH RECEIVED", cs);
     return WAIT_PUBLISH_CONTENT_HEADER;
 }
 
@@ -378,7 +378,7 @@ static machine_state action_wait_publish_content_header(connection_state *cs) {
     amqp_message_header message_header;
     amqp_content_header *content_header;
 
-    log_state("WAIT PUBLISH HEADER");
+    log_state("WAIT PUBLISH HEADER", cs);
 
     if (read_message_header(cs, &message_header)) return FAIL;
 
@@ -394,7 +394,7 @@ static machine_state action_wait_publish_content(connection_state *cs) {
     amqp_method *method;
     char *body;
     machine_state next_state = FAIL;
-    log_state("WAIT PUBLISH CONTENT");
+    log_state("WAIT PUBLISH CONTENT", cs);
 
     if (read_message_header(cs, &message_header)) return FAIL;
 
@@ -423,7 +423,7 @@ static machine_state action_wait_publish_content(connection_state *cs) {
 }
 
 static machine_state action_basic_consume_received(connection_state *cs) {
-    log_state("BASIC CONSUME RECEIVED");
+    log_state("BASIC CONSUME RECEIVED", cs);
 
     send_method(
         cs,
@@ -440,7 +440,7 @@ static machine_state action_basic_consume_received(connection_state *cs) {
 static machine_state action_wait_value_dequeue(connection_state *cs) {
     char *s;
 
-    log_state("WAIT VALUE DEQUEUE");
+    log_state("WAIT VALUE DEQUEUE", cs);
 
     while (queue_size(&cs->ss->pool, cs->current_queue_name) == 0)
         sleep(1);
@@ -455,7 +455,7 @@ static machine_state action_wait_value_dequeue(connection_state *cs) {
 static machine_state action_value_dequeue_received(connection_state *cs) {
     size_t body_size = strlen(cs->recvline);
 
-    log_state("VALUE DEQUEUE RECEIVED");
+    log_state("VALUE DEQUEUE RECEIVED", cs);
 
     send_method(
         cs,
@@ -491,7 +491,7 @@ static machine_state action_wait_consume_ack(connection_state * cs) {
     amqp_method *method;
     machine_state next_state = FAIL;
 
-    log_state("WAIT CONSUME ACK");
+    log_state("WAIT CONSUME ACK", cs);
 
     if (read_message_header(cs, &message_header)) return FAIL;
 

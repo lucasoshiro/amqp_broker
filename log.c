@@ -4,29 +4,31 @@
 
 int should_log = 1;
 
-void log_state(char *state_name) {
+void log_state(char *state_name, connection_state *cs) {
     if (should_log)
-        printf("STATE: %s\n", state_name);
+        printf("THREAD %p\tSTATE %s\n", (void *) cs->thread, state_name);
 }
 
-void log_message_header(char sender, amqp_message_header header) {
+void log_message_header(char sender, amqp_message_header header, connection_state *cs) {
     if (should_log)
         printf(
-            "%c: "
-            "type: %02x, "
-            "channel: %04x, "
-            "length: %08x\n",
-            sender, header.msg_type, header.channel, header.length
+            "THREAD %p\t"
+            "%c\t"
+            "TYPE %02x\t"
+            "CHANNEL %04x\t"
+            "LENGTH %08x\n",
+            (void *) cs->thread, sender, header.msg_type, header.channel, header.length
             );
 }
 
-void log_method_header(char sender, amqp_method_header header) {
+void log_method_header(char sender, amqp_method_header header, connection_state *cs) {
     if (should_log)
         printf(
-            "%c: "
-            "class: %04x, "
-            "method: %04x\n",
-            sender, header.class, header.method
+            "THREAD %p\t"
+            "%c\t"
+            "CLASS %04x\t"
+            "METHOD %04x\n",
+            (void *) cs->thread, sender, header.class, header.method
             );
 }
 
