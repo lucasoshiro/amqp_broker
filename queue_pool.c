@@ -9,15 +9,15 @@ static queue *get_queue(queue_pool *, char *);
 
 static trie_node *_get_trie_node(trie_node *root, char *name) {
     trie_node *child;
-    char first = *name;
+    unsigned char first = *name;
 
     if (first == '\0') return root;
-    child = root->children[(int) first];
+    child = root->children[first];
 
     if (child == NULL) {
         child = malloc(sizeof(*child));
         bzero(child, sizeof(*child));
-        root->children[(int) first] = child;
+        root->children[first] = child;
     }
 
     return _get_trie_node(child, name + 1);
