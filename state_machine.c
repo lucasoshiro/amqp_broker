@@ -316,6 +316,13 @@ static machine_state action_wait_functional(connection_state *cs) {
             break;
         }
 
+    case CONNECTION:
+        switch (method->header.method) {
+        case CONNECTION_CLOSE:
+            next_state = CLOSE_CONNECTION_RECEIVED;
+            break;
+        }
+
     case QUEUE:
         switch (method->header.method) {
         case QUEUE_DECLARE:
