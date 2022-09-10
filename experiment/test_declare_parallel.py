@@ -4,18 +4,24 @@ from time import time
 from itertools import permutations
 import threading
 
-HOST = 'localhost:5673'
+HOST = 'localhost:5672'
 
 def declare_many_thread(s):
-    with amqp.Connection(HOST) as c:
-        ch = c.channel()
-        # ch.queue_declare(''.join(s))
+    while True:
+        try:
+            conn = amqp.Connection(HOST, ssl=False)
+            conn.connect()
+            ch = conn.channel()
+            break
+        except:
+            pass
+    ch.queue_declare(''.join(s))
+    conn.close()
 
 a = time()
-# with amqp.Connection(HOST) as c:
 threads = [
-    threading.Thread(target=lambda: declare_many_thread(s))
-    for s in permutations('AB')
+    threading.Thread(target=declare_many_thread, args=(s,))
+    for s in permutations('ABCDEFGH')
 ]
     
 for thread in threads: thread.start()
