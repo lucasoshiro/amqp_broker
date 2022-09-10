@@ -126,8 +126,8 @@ int main (int argc, char **argv) {
     /* O servidor no final das contas é um loop infinito de espera por
      * conexões e processamento de cada uma individualmente */
     for (;;) {
-        pthread_t thread;
-        connection_thread_args args;
+        pthread_t *thread = malloc(sizeof(*thread)); /* TODO: free this! */
+        connection_thread_args *args = malloc(sizeof(*args)); /* TODO: free this! */
 
         /* O socket inicial que foi criado é o socket que vai aguardar
          * pela conexão na porta especificada. Mas pode ser que existam
@@ -141,10 +141,10 @@ int main (int argc, char **argv) {
             exit(5);
         }
       
-        args.connfd = connfd;
-        args.ss = &ss;
-        args.thread = &thread;
-        pthread_create(&thread, NULL, connection_thread_main, &args);
+        args->connfd = connfd;
+        args->ss = &ss;
+        args->thread = thread;
+        pthread_create(thread, NULL, connection_thread_main, args);
     }
 
     exit(0);
