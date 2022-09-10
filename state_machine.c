@@ -327,6 +327,7 @@ static machine_state action_wait_functional(connection_state *cs) {
         switch (method->header.method) {
         case QUEUE_DECLARE:
             parse_queue_declare_args(method->arguments, cs->current_queue_name);
+            log_queue_creation(cs->current_queue_name, cs);
             create_queue(&cs->ss->pool, cs->current_queue_name);
             next_state = QUEUE_DECLARE_RECEIVED;
             break;
