@@ -10,7 +10,7 @@ pthread_mutex_t log_mutex;
 void log_state(char *state_name, connection_state *cs) {
     if (should_log) {
         pthread_mutex_lock(&log_mutex);
-        printf("THREAD %d\tSTATE %s\n", cs->thread_id, state_name);
+        printf("THREAD %d\tSTATE\t%s\n", cs->thread_id, state_name);
         pthread_mutex_unlock(&log_mutex);
     }
 }
