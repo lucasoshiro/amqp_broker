@@ -5,6 +5,6 @@
 #include "util.h"
 
 void init_shared_state(shared_state *ss) {
-    init_queue_pool(&ss->pool);
+    init_queue_pool(&ss->q_pool);
     bzero(&ss->channels, MAX_CHANNELS * sizeof(int));
 }

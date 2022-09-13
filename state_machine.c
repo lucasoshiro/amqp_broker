@@ -328,7 +328,7 @@ static machine_state action_wait_functional(connection_state *cs) {
         case QUEUE_DECLARE:
             parse_queue_declare_args(method->arguments, cs->current_queue_name);
             log_queue_creation(cs->current_queue_name, cs);
-            create_queue(&cs->ss->pool, cs->current_queue_name);
+            create_queue(&cs->ss->q_pool, cs->current_queue_name);
             next_state = QUEUE_DECLARE_RECEIVED;
             break;
         }
@@ -356,7 +356,7 @@ static machine_state action_wait_functional(connection_state *cs) {
 static machine_state action_queue_declare_received(connection_state *cs) {
     log_state("QUEUE DECLARE RECEIVED", cs);
 
-    int q_size = queue_size(&cs->ss->pool, cs->current_queue_name);
+    int q_size = queue_size(&cs->ss->q_pool, cs->current_queue_name);
 
     send_queue_declare_ok(
         cs,
@@ -413,7 +413,7 @@ static machine_state action_wait_publish_content(connection_state *cs) {
     case BODY:
         body = read_body(cs, message_header.length);
 
-        enqueue_to(&cs->ss->pool, cs->current_queue_name, body);
+        enqueue_to(&cs->ss->q_pool, cs->current_queue_name, body);
 
         next_state = WAIT_PUBLISH_CONTENT;
         free(body);
@@ -443,10 +443,10 @@ static machine_state action_wait_value_dequeue(connection_state *cs) {
 
     log_state("WAIT VALUE DEQUEUE", cs);
 
-    while (queue_size(&cs->ss->pool, cs->current_queue_name) == 0)
+    while (queue_size(&cs->ss->q_pool, cs->current_queue_name) == 0)
         sleep(1);
 
-    s = dequeue_from(&cs->ss->pool, cs->current_queue_name);
+    s = dequeue_from(&cs->ss->q_pool, cs->current_queue_name);
     strcpy(cs->recvline, s);
     free(s);
 

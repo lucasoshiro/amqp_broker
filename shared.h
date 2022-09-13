@@ -5,7 +5,7 @@
 #define MAX_CHANNELS 256
 
 typedef struct {
-    queue_pool pool;
+    queue_pool q_pool;
     int channels[MAX_CHANNELS];
 } shared_state;
 
