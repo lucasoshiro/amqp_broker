@@ -51,14 +51,18 @@
 typedef struct {
     int connfd;
     shared_state *ss;
-    pthread_t *thread;
+    int thread_id;
+    pthread_mutex_t *creation_mutex;
 } connection_thread_args;
 
 void *connection_thread_main(void *_args) {
     connection_thread_args *args = _args;
 
+    pthread_mutex_lock(args->creation_mutex);
+    pthread_mutex_unlock(args->creation_mutex);
+
     printf("[Uma conexão aberta]\n");    
-    state_machine_main(args->connfd, args->thread, args->ss);
+    state_machine_main(args->connfd, args->thread_id, args->ss);
     printf("[Uma conexão fechada]\n");
     close(args->connfd);
     return NULL;
@@ -125,9 +129,10 @@ int main (int argc, char **argv) {
    
     /* O servidor no final das contas é um loop infinito de espera por
      * conexões e processamento de cada uma individualmente */
-    for (;;) {
-        pthread_t *thread = malloc(sizeof(*thread)); /* TODO: free this! */
-        connection_thread_args *args = malloc(sizeof(*args)); /* TODO: free this! */
+    for (int thread_count = 0;; thread_count++) {
+        pthread_t thread;
+        connection_thread_args args;
+        pthread_mutex_t creation_mutex;
 
         /* O socket inicial que foi criado é o socket que vai aguardar
          * pela conexão na porta especificada. Mas pode ser que existam
@@ -141,10 +146,14 @@ int main (int argc, char **argv) {
             exit(5);
         }
       
-        args->connfd = connfd;
-        args->ss = &ss;
-        args->thread = thread;
-        pthread_create(thread, NULL, connection_thread_main, args);
+        args.connfd = connfd;
+        args.ss = &ss;
+        args.thread_id = thread_count;
+        args.creation_mutex = &creation_mutex;
+
+        pthread_mutex_lock(&creation_mutex);
+        pthread_create(&thread, NULL, connection_thread_main, &args);
+        pthread_mutex_unlock(&creation_mutex);
     }
 
     exit(0);

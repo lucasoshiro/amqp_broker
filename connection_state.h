@@ -7,7 +7,7 @@
 
 typedef struct {
     int connfd;
-    pthread_t *thread;
+    int thread_id;
     shared_state *ss;
     char recvline[MAXLINE];
     char sendline[MAXLINE];

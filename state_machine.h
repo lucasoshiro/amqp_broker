@@ -61,4 +61,4 @@ typedef enum machine_state {
 /* This is the main function for each connection. connfd is the file descriptor
    of the socket of the connection, and ss is the shared state between the
    connections. */
-void state_machine_main(int connfd, pthread_t *thread, shared_state *ss);
+void state_machine_main(int connfd, int thread_id, shared_state *ss);
