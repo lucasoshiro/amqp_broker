@@ -1,26 +1,26 @@
 /* Por Prof. Daniel Batista <batista@ime.usp.br>
  * Em 28/8/2022
- * 
+ *
  * Um código simples de um servidor de eco a ser usado como base para
  * o EP1. Ele recebe uma linha de um cliente e devolve a mesma linha.
  * Teste ele assim depois de compilar:
- * 
+ *
  * ./mac5910-servidor-exemplo-ep1 8000
- * 
+ *
  * Com este comando o servidor ficará escutando por conexões na porta
  * 8000 TCP (Se você quiser fazer o servidor escutar em uma porta
  * menor que 1024 você precisará ser root ou ter as permissões
  * necessáfias para rodar o código com 'sudo').
  *
  * Depois conecte no servidor via telnet. Rode em outro terminal:
- * 
+ *
  * telnet 127.0.0.1 8000
- * 
+ *
  * Escreva sequências de caracteres seguidas de ENTER. Você verá que o
  * telnet exibe a mesma linha em seguida. Esta repetição da linha é
  * enviada pelo servidor. O servidor também exibe no terminal onde ele
  * estiver rodando as linhas enviadas pelos clientes.
- * 
+ *
  * Obs.: Você pode conectar no servidor remotamente também. Basta
  * saber o endereço IP remoto da máquina onde o servidor está rodando
  * e não pode haver nenhum firewall no meio do caminho bloqueando
@@ -48,23 +48,31 @@
 #define MAXDATASIZE 100
 #define MAXLINE 4096
 
+#define MAX_THREAD 512
+
 typedef struct {
+    int active;
+    pthread_t thread;
+    int thread_id;
     int connfd;
     shared_state *ss;
-    int thread_id;
-    pthread_mutex_t *creation_mutex;
-} connection_thread_args;
+} connection_thread;
 
-void *connection_thread_main(void *_args) {
-    connection_thread_args *args = _args;
+connection_thread threads[MAX_THREAD];
+pthread_mutex_t thread_allocation_mutex;
 
-    pthread_mutex_lock(args->creation_mutex);
-    pthread_mutex_unlock(args->creation_mutex);
+void *connection_thread_main(void *_thread) {
+    connection_thread *thread = (connection_thread *) _thread;
 
-    printf("[Uma conexão aberta]\n");    
-    state_machine_main(args->connfd, args->thread_id, args->ss);
-    printf("[Uma conexão fechada]\n");
-    close(args->connfd);
+    printf("%d [Uma conexão aberta]\n", thread->thread_id);
+    state_machine_main(thread->connfd, thread->thread_id, thread->ss);
+    printf("%d [Uma conexão fechada]\n", thread->thread_id);
+    close(thread->connfd);
+
+    pthread_mutex_lock(&thread_allocation_mutex);
+    threads[thread->thread_id].active = 0;
+    pthread_mutex_unlock(&thread_allocation_mutex);
+
     return NULL;
 }
 
@@ -77,8 +85,10 @@ int main (int argc, char **argv) {
 
     shared_state ss;
 
+
     init_shared_state(&ss);
-   
+    bzero(threads, MAX_THREAD * sizeof(connection_thread));
+
     if (argc != 2) {
         fprintf(stderr,"Uso: %s <Porta>\n",argv[0]);
         fprintf(stderr,"Vai rodar um servidor de echo na porta <Porta> TCP\n");
@@ -126,13 +136,28 @@ int main (int argc, char **argv) {
 
     printf("[Servidor no ar. Aguardando conexões na porta %s]\n",argv[1]);
     printf("[Para finalizar, pressione CTRL+c ou rode um kill ou killall]\n");
-   
+
     /* O servidor no final das contas é um loop infinito de espera por
      * conexões e processamento de cada uma individualmente */
-    for (int thread_count = 0;; thread_count++) {
-        pthread_t thread;
-        connection_thread_args args;
-        pthread_mutex_t creation_mutex;
+    for (int thread_count = 0;; thread_count = (thread_count + 1) % MAX_THREAD) {
+        connection_thread *thread;
+
+        pthread_mutex_lock(&thread_allocation_mutex);
+        for (int i = 0; i <= MAX_THREAD; i++) {
+            if (i == MAX_THREAD) {
+                printf("vixe...\n");
+                sleep(1);
+                i = 0;
+            }
+
+            if (!threads[thread_count + i % MAX_THREAD].active) {
+                thread_count = thread_count + i % MAX_THREAD;
+                thread = &threads[thread_count];
+                thread->active = 1;
+                break;
+            }
+        }
+        pthread_mutex_unlock(&thread_allocation_mutex);
 
         /* O socket inicial que foi criado é o socket que vai aguardar
          * pela conexão na porta especificada. Mas pode ser que existam
@@ -145,15 +170,17 @@ int main (int argc, char **argv) {
             perror("accept :(\n");
             exit(5);
         }
-      
-        args.connfd = connfd;
-        args.ss = &ss;
-        args.thread_id = thread_count;
-        args.creation_mutex = &creation_mutex;
 
-        pthread_mutex_lock(&creation_mutex);
-        pthread_create(&thread, NULL, connection_thread_main, &args);
-        pthread_mutex_unlock(&creation_mutex);
+        thread->connfd = connfd;
+        thread->ss = &ss;
+        thread->thread_id = thread_count;
+
+        pthread_create(
+            &thread->thread,
+            NULL,
+            connection_thread_main,
+            thread
+            );
     }
 
     exit(0);
