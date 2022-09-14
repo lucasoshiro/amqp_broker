@@ -41,6 +41,7 @@
 #include <unistd.h>
 #include <pthread.h>
 
+#include "log.h"
 #include "state_machine.h"
 #include "shared.h"
 
@@ -64,10 +65,10 @@ pthread_mutex_t thread_allocation_mutex;
 void *connection_thread_main(void *_thread) {
     connection_thread *thread = (connection_thread *) _thread;
 
-    printf("%d [Uma conexão aberta]\n", thread->thread_id);
+    log_connection_accept(thread->thread_id, thread->connfd);
     state_machine_main(thread->connfd, thread->thread_id, thread->ss);
-    printf("%d [Uma conexão fechada]\n", thread->thread_id);
     close(thread->connfd);
+    log_connection_close(thread->thread_id, thread->connfd);
 
     pthread_mutex_lock(&thread_allocation_mutex);
     threads[thread->thread_id].active = 0;
@@ -145,7 +146,7 @@ int main (int argc, char **argv) {
         pthread_mutex_lock(&thread_allocation_mutex);
         for (int i = 0; i <= MAX_THREAD; i++) {
             if (i == MAX_THREAD) {
-                printf("vixe...\n");
+                log_max_thread_reached();
                 sleep(1);
                 i = 0;
             }
