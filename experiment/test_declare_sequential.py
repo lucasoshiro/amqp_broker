@@ -7,10 +7,18 @@ import threading
 HOST = 'localhost:5672'
 
 a = time()
-with amqp.Connection(HOST) as c:
+for s in permutations('ABCDEFG'):
+    while True:
+        try:
+            c = amqp.Connection(HOST)
+            c.connect()
+            break
+        except:
+            pass
+    
     ch = c.channel()
-    for s in permutations('ABCDEFGH'):
-        ch.queue_declare(''.join(s))
+    ch.queue_declare(''.join(s))
+    c.close()
 b = time()
 
 print(b - a)
