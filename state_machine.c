@@ -92,6 +92,8 @@ void state_machine_main(int connfd, int thread_id, shared_state *ss) {
 
     cs.current_queue_name[0] = '\0';
 
+    strcpy(cs.error_msg, "Unknown");
+
     while (m != FINISHED && m != FAIL) {
         m = actions[m](&cs);
     
@@ -116,8 +118,10 @@ static machine_state action_wait(connection_state *cs) {
 
     log_state("WAITING HEADER", cs);
 
-    if (read_protocol_header(cs, &header))
+    if (read_protocol_header(cs, &header)) {
+        strcpy(cs->error_msg, "Error reading protocol header");
         return FAIL;
+    }
 
     return HEADER_RECEIVED;
 }
@@ -144,14 +148,19 @@ static machine_state action_wait_start_ok(connection_state *cs) {
 
     log_state("WAIT START OK", cs);
 
-    if (read_message_header(cs, &message_header)) return FAIL;
+    if (read_message_header(cs, &message_header)) {
+        strcpy(cs->error_msg, "Error reading protocol header");
+        return FAIL;
+    }
 
     if ((method = read_method(cs, message_header.length)) == NULL)
         return FAIL;
 
     if (method->header.class != CONNECTION ||
-        method->header.method != CONNECTION_START_OK)
+        method->header.method != CONNECTION_START_OK) {
+        strcpy(cs->error_msg, "Did not receive connection start ok");
         next_state = FAIL;
+    }
     else
         next_state = START_OK_RECEIVED;
 
@@ -170,6 +179,7 @@ static machine_state action_start_ok_received(connection_state *cs) {
         (void *) CONNECTION_TUNE_ARGS,
         CONNECTION_TUNE_ARGS_SIZE
         );
+
     return WAIT_TUNE_OK;
 }
 
@@ -180,14 +190,21 @@ static machine_state action_wait_tune_ok(connection_state *cs) {
 
     log_state("WAIT TUNE OK", cs);
 
-    if (read_message_header(cs, &message_header)) return FAIL;
-
-    if ((method = read_method(cs, message_header.length)) == NULL)
+    if (read_message_header(cs, &message_header)) {
+        strcpy(cs->error_msg, "Error reading message header");
         return FAIL;
+    }
+
+    if ((method = read_method(cs, message_header.length)) == NULL){
+        strcpy(cs->error_msg, "Error reading method");
+        return FAIL;
+    }
 
     if (method->header.class != CONNECTION ||
-        method->header.method != CONNECTION_TUNE_OK)
+        method->header.method != CONNECTION_TUNE_OK) {
+        strcpy(cs->error_msg, "Did not receive tune ok");
         next_state = FAIL;
+    }
     else next_state = WAIT_OPEN_CONNECTION;
 
     free(method);
@@ -201,14 +218,22 @@ static machine_state action_wait_open_connection(connection_state *cs) {
 
     log_state("WAIT OPEN CONNECTION", cs);
 
-    if (read_message_header(cs, &message_header)) return FAIL;
-
-    if ((method = read_method(cs, message_header.length)) == NULL)
+    if (read_message_header(cs, &message_header)) {
+        strcpy(cs->error_msg, "Error reading message header");
         return FAIL;
+    }
+
+    if ((method = read_method(cs, message_header.length)) == NULL) {
+        strcpy(cs->error_msg, "Error reading method");
+        return FAIL;
+    }
 
     if (method->header.class != CONNECTION ||
-        method->header.method != CONNECTION_OPEN)
+        method->header.method != CONNECTION_OPEN) {
+        strcpy(cs->error_msg, "Did not receive open");
         next_state = FAIL;
+    }
+
     else
         next_state = OPEN_CONNECTION_RECEIVED;
 
@@ -253,10 +278,15 @@ static machine_state action_wait_open_channel(connection_state *cs) {
 
     log_state("WAIT OPEN CHANNEL", cs);
 
-    if (read_message_header(cs, &message_header)) return FAIL;
-
-    if ((method = read_method(cs, message_header.length)) == NULL)
+    if (read_message_header(cs, &message_header)) {
+        strcpy(cs->error_msg, "Error reading message header");
         return FAIL;
+    }
+
+    if ((method = read_method(cs, message_header.length)) == NULL) {
+        strcpy(cs->error_msg, "Error reading method");
+        return FAIL;
+    }
 
     switch (method->header.class) {
     case CHANNEL:
@@ -265,6 +295,7 @@ static machine_state action_wait_open_channel(connection_state *cs) {
             next_state = OPEN_CHANNEL_RECEIVED;
             break;
         }
+        break;
 
     case CONNECTION:
         switch (method->header.method) {
@@ -272,6 +303,16 @@ static machine_state action_wait_open_channel(connection_state *cs) {
             next_state = CLOSE_CONNECTION_RECEIVED;
             break;
         }
+        break;
+    }
+
+    if (next_state == FAIL) {
+        sprintf(
+            cs->error_msg,
+            "Unexpected class %d method %d",
+            method->header.class,
+            method->header.method
+            );
     }
 
     free(method);
@@ -315,10 +356,15 @@ static machine_state action_wait_functional(connection_state *cs) {
 
     log_state("WAIT FUNCTIONAL", cs);
 
-    if (read_message_header(cs, &message_header)) return FAIL;
-
-    if ((method = read_method(cs, message_header.length)) == NULL)
+    if (read_message_header(cs, &message_header)) {
+        strcpy(cs->error_msg, "Error reading message header");
         return FAIL;
+    }
+
+    if ((method = read_method(cs, message_header.length)) == NULL) {
+        strcpy(cs->error_msg, "Error reading method");
+        return FAIL;
+    }
 
     switch (method->header.class) {
     case CHANNEL:
@@ -360,6 +406,16 @@ static machine_state action_wait_functional(connection_state *cs) {
         }
     }
 
+    if (next_state == FAIL) {
+        sprintf(
+            cs->error_msg,
+            "Unexpected class %d method %d",
+            method->header.class,
+            method->header.method
+            );
+        next_state = FAIL;
+    }
+
     free(method);
 
     return next_state;
@@ -393,7 +449,10 @@ static machine_state action_wait_publish_content_header(connection_state *cs) {
 
     log_state("WAIT PUBLISH HEADER", cs);
 
-    if (read_message_header(cs, &message_header)) return FAIL;
+    if (read_message_header(cs, &message_header)) {
+        strcpy(cs->error_msg, "Error reading message header");
+        return FAIL;
+    }
 
     content_header = read_content_header(cs, message_header.length);
 
@@ -409,17 +468,34 @@ static machine_state action_wait_publish_content(connection_state *cs) {
     machine_state next_state = FAIL;
     log_state("WAIT PUBLISH CONTENT", cs);
 
-    if (read_message_header(cs, &message_header)) return FAIL;
+    if (read_message_header(cs, &message_header)) {
+        strcpy(cs->error_msg, "Error reading message header");
+        return FAIL;
+    }
 
     switch (message_header.msg_type) {
     case METHOD:
-        if ((method = read_method(cs, message_header.length)) == NULL)
+        if ((method = read_method(cs, message_header.length)) == NULL) {
+            strcpy(cs->error_msg, "Error reading method");
             return FAIL;
+        }
+
         next_state =
             (method->header.class == CHANNEL &&
              method->header.method == CHANNEL_CLOSE)
             ? CLOSE_CHANNEL_RECEIVED
             : FAIL;
+
+        if (next_state == FAIL) {
+            sprintf(
+                cs->error_msg,
+                "Unexpected class %d method %d",
+                method->header.class,
+                method->header.method
+                );
+            next_state = FAIL;
+        }
+
         free(method);
         break;
 
@@ -431,6 +507,14 @@ static machine_state action_wait_publish_content(connection_state *cs) {
         next_state = WAIT_PUBLISH_CONTENT;
         free(body);
         break;
+
+    default:
+        sprintf(
+            cs->error_msg,
+            "Unexpected message type %d",
+            message_header.msg_type
+            );
+        next_state = FAIL;
     }
 
     return next_state;
@@ -507,14 +591,26 @@ static machine_state action_wait_consume_ack(connection_state * cs) {
 
     log_state("WAIT CONSUME ACK", cs);
 
-    if (read_message_header(cs, &message_header)) return FAIL;
-
-    if ((method = read_method(cs, message_header.length)) == NULL)
+    if (read_message_header(cs, &message_header)) {
+        strcpy(cs->error_msg, "Error reading message header");
         return FAIL;
+    }
+
+    if ((method = read_method(cs, message_header.length)) == NULL) {
+        strcpy(cs->error_msg, "Error reading method");
+        return FAIL;
+    }
 
     if (method->header.class != BASIC ||
-        method->header.method != BASIC_ACK)
+        method->header.method != BASIC_ACK) {
+            sprintf(
+                cs->error_msg,
+                "Unexpected class %d method %d",
+                method->header.class,
+                method->header.method
+                );
         next_state = FAIL;
+    }
     else
         next_state = WAIT_VALUE_DEQUEUE;
 

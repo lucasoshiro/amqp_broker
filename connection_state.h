@@ -4,6 +4,8 @@
 #include <pthread.h>
 
 #define MAXLINE 4096
+#define MAX_QUEUE_NAME 256
+#define ERROR_MSG_SIZE 128
 
 typedef struct {
     int connfd;
@@ -11,6 +13,7 @@ typedef struct {
     shared_state *ss;
     char recvline[MAXLINE];
     char sendline[MAXLINE];
-    char current_queue_name[MAXLINE];
+    char current_queue_name[MAX_QUEUE_NAME];
+    char error_msg[ERROR_MSG_SIZE];
 } connection_state;
 

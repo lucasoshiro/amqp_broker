@@ -96,8 +96,10 @@ void log_fail(connection_state *cs) {
     pthread_mutex_lock(&log_mutex);
     printf(
         "THREAD %d\t"
-        "FAIL!\n",
-        cs->thread_id
+        "FAIL!\t"
+        "MSG: %s\n",
+        cs->thread_id,
+        cs->error_msg
         );
     pthread_mutex_unlock(&log_mutex);
 }
