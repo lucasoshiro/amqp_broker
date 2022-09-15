@@ -3,7 +3,7 @@
 #include "shared.h"
 #include <pthread.h>
 
-#define MAXLINE 4096
+#define MAXLINE 131073
 #define MAX_QUEUE_NAME 256
 #define ERROR_MSG_SIZE 128
 

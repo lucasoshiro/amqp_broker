@@ -46,10 +46,7 @@
 #include "shared.h"
 
 #define LISTENQ 1
-#define MAXDATASIZE 100
-#define MAXLINE 4096
-
-#define MAX_THREAD 512
+#define MAX_THREAD 2047
 
 typedef struct {
     int active;

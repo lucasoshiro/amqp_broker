@@ -7,8 +7,6 @@
 #include "util.h"
 #include "log.h"
 
-#define MAXLINE 4096
-
 const amqp_protocol_header default_amqp_header = {
     .amqp = {'A', 'M', 'Q', 'P'},
     .id_major = 0,

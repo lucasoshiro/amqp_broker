@@ -3,8 +3,6 @@
 #include "connection_state.h"
 #include <pthread.h>
 
-#define MAXCHANNEL 512
-
 typedef struct {
     int channel_id;
     pthread_t thread;
