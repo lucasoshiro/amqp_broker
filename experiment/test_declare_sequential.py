@@ -3,8 +3,13 @@ import amqp
 from time import time
 from itertools import permutations
 import threading
+from sys import argv
 
-HOST = 'localhost:5672'
+argv = dict(enumerate(argv))
+
+IP = argv.get(1) or 'localhost'
+PORT = argv.get(2) or '5672'
+HOST = ':'.join([IP, PORT])
 
 a = time()
 for s in permutations('ABCDEFG'):
