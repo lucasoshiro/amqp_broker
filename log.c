@@ -114,3 +114,35 @@ void log_finished(connection_state *cs) {
         );
     pthread_mutex_unlock(&log_mutex);
 }
+
+void log_enqueue(connection_state *cs, char *body) {
+    if (!should_log) return;
+    pthread_mutex_lock(&log_mutex);
+    printf(
+        "THREAD %d\t"
+        "ENQ\t"
+        "QUEUE %s\t"
+        "BODY %s\t"
+        "\n",
+        cs->thread_id,
+        cs->current_queue_name,
+        body
+        );
+    pthread_mutex_unlock(&log_mutex);
+}
+
+void log_dequeue(connection_state *cs, char *body) {
+    if (!should_log) return;
+    pthread_mutex_lock(&log_mutex);
+    printf(
+        "THREAD %d\t"
+        "DEQ\t"
+        "QUEUE %s\t"
+        "BODY %s\t"
+        "\n",
+        cs->thread_id,
+        cs->current_queue_name,
+        body
+        );
+    pthread_mutex_unlock(&log_mutex);
+}

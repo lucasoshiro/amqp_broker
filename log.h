@@ -19,3 +19,7 @@ void log_max_thread_reached();
 void log_fail(connection_state *cs);
 
 void log_finished(connection_state *cs);
+
+void log_enqueue(connection_state *cs, char *body);
+
+void log_dequeue(connection_state *cs, char *body);

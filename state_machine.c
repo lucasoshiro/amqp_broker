@@ -523,6 +523,7 @@ static machine_state action_wait_publish_content(connection_state *cs) {
         body = read_body(cs, message_header.length);
 
         enqueue_to(&cs->ss->q_pool, cs->current_queue_name, body);
+        log_enqueue(cs, body);
 
         next_state = WAIT_PUBLISH_CONTENT;
         free(body);
@@ -566,6 +567,8 @@ static machine_state action_wait_value_dequeue(connection_state *cs) {
     s = dequeue_from(&cs->ss->q_pool, cs->current_queue_name);
     strcpy(cs->recvline, s);
     free(s);
+
+    log_dequeue(cs, cs->recvline);
 
     return VALUE_DEQUEUE_RECEIVED;
 }
