@@ -89,5 +89,26 @@ void log_max_thread_reached() {
         "MAX THREAD REACHED\n"
         );
     pthread_mutex_unlock(&log_mutex);
+}
 
+void log_fail(connection_state *cs) {
+    if (!should_log) return;
+    pthread_mutex_lock(&log_mutex);
+    printf(
+        "THREAD %d\t"
+        "FAIL!\n",
+        cs->thread_id
+        );
+    pthread_mutex_unlock(&log_mutex);
+}
+
+void log_finished(connection_state *cs) {
+    if (!should_log) return;
+    pthread_mutex_lock(&log_mutex);
+    printf(
+        "THREAD %d\t"
+        "FINISHED!\n",
+        cs->thread_id
+        );
+    pthread_mutex_unlock(&log_mutex);
 }

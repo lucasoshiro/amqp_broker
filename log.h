@@ -15,3 +15,7 @@ void log_connection_accept(int thread_id, int connfd);
 void log_connection_close(int thread_id, int connfd);
 
 void log_max_thread_reached();
+
+void log_fail(connection_state *cs);
+
+void log_finished(connection_state *cs);

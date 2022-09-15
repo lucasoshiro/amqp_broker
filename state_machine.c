@@ -94,8 +94,20 @@ void state_machine_main(int connfd, int thread_id, shared_state *ss) {
 
     while (m != FINISHED && m != FAIL) {
         m = actions[m](&cs);
-        if (m == FAIL)
-            printf("!!!!!!!!!!!! FAIL !!!!!!!!!!!!!!\n");
+    
+        switch (m) {
+        case FAIL:
+            log_fail(&cs);
+            break;
+
+        case FINISHED:
+            log_finished(&cs);
+            break;
+
+        default:
+            (void) m;
+            break;
+        }
     }
 }
 
@@ -402,7 +414,7 @@ static machine_state action_wait_publish_content(connection_state *cs) {
     switch (message_header.msg_type) {
     case METHOD:
         if ((method = read_method(cs, message_header.length)) == NULL)
-        return FAIL;
+            return FAIL;
         next_state =
             (method->header.class == CHANNEL &&
              method->header.method == CHANNEL_CLOSE)
@@ -410,6 +422,7 @@ static machine_state action_wait_publish_content(connection_state *cs) {
             : FAIL;
         free(method);
         break;
+
     case BODY:
         body = read_body(cs, message_header.length);
 
