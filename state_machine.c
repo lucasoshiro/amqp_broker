@@ -480,11 +480,24 @@ static machine_state action_wait_publish_content(connection_state *cs) {
             return FAIL;
         }
 
-        next_state =
-            (method->header.class == CHANNEL &&
-             method->header.method == CHANNEL_CLOSE)
-            ? CLOSE_CHANNEL_RECEIVED
-            : FAIL;
+        switch (method->header.class) {
+        case CHANNEL:
+            switch (method->header.method) {
+            case CHANNEL_CLOSE:
+                next_state = CLOSE_CHANNEL_RECEIVED;
+                break;
+            }
+            break;
+
+        case BASIC:
+            switch (method->header.method) {
+            case BASIC_PUBLISH:
+                parse_basic_publish_args(method->arguments, cs->current_queue_name);
+                next_state = BASIC_PUBLISH_RECEIVED;
+                break;
+            }
+            break;
+        }
 
         if (next_state == FAIL) {
             sprintf(
