@@ -497,6 +497,13 @@ static machine_state action_wait_publish_content(connection_state *cs) {
                 break;
             }
             break;
+
+        case CONNECTION:
+            switch (method->header.method) {
+            case CONNECTION_CLOSE:
+                next_state = CLOSE_CONNECTION_RECEIVED;
+                break;
+            }
         }
 
         if (next_state == FAIL) {
