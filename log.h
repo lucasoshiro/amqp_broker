@@ -1,3 +1,10 @@
+/* Log
+
+   These functions are just printf wrappers, logging to the stdout relevant
+   messages, such as: entering a state, send or receiving a message, if the
+   communication is finished or has failed, and so on.
+ */
+
 #pragma once
 
 #include "amqp_message.h"

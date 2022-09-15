@@ -18,4 +18,8 @@ int bit_cardinality_16(uint16_t bit_array);
  */
 uint64_t swipe_endianness_64(uint64_t n);
 
+/* Read from the file descriptor fildes into buf until it have the specified
+   size. This function returns the size itself if everything is ok, or 0
+   if there's no more bytes to read.
+*/
 size_t read_until(int fildes, void *buf, size_t size);

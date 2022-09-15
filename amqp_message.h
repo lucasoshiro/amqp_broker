@@ -174,6 +174,8 @@ void send_method(
     size_t args_size
     );
 
+/* Send a "declare ok" method, given its channel, name, number of messages and
+   number of consumers. */
 void send_queue_declare_ok(
     connection_state *cs,
     uint16_t channel,
