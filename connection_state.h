@@ -1,10 +1,10 @@
 #pragma once
 
-#include "shared.h"
 #include <pthread.h>
 
-#define MAXLINE 131073
-#define MAX_QUEUE_NAME 256
+#include "shared.h"
+#include "config.h"
+
 #define ERROR_MSG_SIZE 128
 
 typedef struct {

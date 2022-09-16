@@ -7,9 +7,10 @@ https://www.lua.org/pil/28.html).
 
  */
 #pragma once
+
 #include <pthread.h>
 
-#define MAX_QUEUE_NAME 256
+#include "config.h"
 
 /* This is the node of a linked list, pointing to its parent. This node holds a
    variable-length string (body).
