@@ -41,12 +41,12 @@
 #include <unistd.h>
 #include <pthread.h>
 
+#include "config.h"
 #include "log.h"
 #include "state_machine.h"
 #include "shared.h"
 
 #define LISTENQ 1
-#define MAX_THREAD 2047
 
 typedef struct {
     int active;
@@ -56,7 +56,7 @@ typedef struct {
     shared_state *ss;
 } connection_thread;
 
-connection_thread threads[MAX_THREAD];
+connection_thread threads[MAX_CONNECTIONS];
 pthread_mutex_t thread_allocation_mutex;
 
 void *connection_thread_main(void *_thread) {
@@ -85,7 +85,7 @@ int main (int argc, char **argv) {
 
 
     init_shared_state(&ss);
-    bzero(threads, MAX_THREAD * sizeof(connection_thread));
+    bzero(threads, MAX_CONNECTIONS * sizeof(connection_thread));
 
     if (argc != 2) {
         fprintf(stderr,"Uso: %s <Porta>\n",argv[0]);
@@ -137,19 +137,21 @@ int main (int argc, char **argv) {
 
     /* O servidor no final das contas é um loop infinito de espera por
      * conexões e processamento de cada uma individualmente */
-    for (int thread_count = 0;; thread_count = (thread_count + 1) % MAX_THREAD) {
+    for (int thread_count = 0;;
+         thread_count = (thread_count + 1) % MAX_CONNECTIONS) {
+
         connection_thread *thread;
 
         pthread_mutex_lock(&thread_allocation_mutex);
-        for (int i = 0; i <= MAX_THREAD; i++) {
-            if (i == MAX_THREAD) {
+        for (int i = 0; i <= MAX_CONNECTIONS; i++) {
+            if (i == MAX_CONNECTIONS) {
                 log_max_thread_reached();
                 sleep(1);
                 i = 0;
             }
 
-            if (!threads[thread_count + i % MAX_THREAD].active) {
-                thread_count = thread_count + i % MAX_THREAD;
+            if (!threads[thread_count + i % MAX_CONNECTIONS].active) {
+                thread_count = thread_count + i % MAX_CONNECTIONS;
                 thread = &threads[thread_count];
                 thread->active = 1;
                 break;
