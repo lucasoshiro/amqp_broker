@@ -38,7 +38,7 @@ void init_queue_pool(queue_pool *pool) {
     bzero(pool, sizeof(*pool));
 }
 
-void create_queue(queue_pool *pool, char *name) {
+queue *create_queue(queue_pool *pool, char *name) {
     trie_node *node;
 
     pthread_mutex_lock(&pool->mutex);
@@ -48,39 +48,12 @@ void create_queue(queue_pool *pool, char *name) {
     pthread_mutex_lock(&node->mutex);
     if (node->q == NULL) node->q = new_queue(name);
     pthread_mutex_unlock(&node->mutex);
+    return node->q;
 }
 
 queue *get_queue(queue_pool *pool, char *name) {
     trie_node *node = _get_trie_node(pool, name);
     return node->q;
-}
-
-void enqueue_to(queue_pool *pool, char *name, char *body) {
-    queue *q;
-
-    pthread_mutex_lock(&pool->mutex);
-    q = get_queue(pool, name);
-    pthread_mutex_unlock(&pool->mutex);
-
-    q_enqueue(q, body);
-}
-
-char *dequeue_from(queue_pool *pool, char *name) {
-    queue *q;
-    pthread_mutex_lock(&pool->mutex);
-    q = get_queue(pool, name);    
-    pthread_mutex_unlock(&pool->mutex);
-
-    return q_dequeue(q);
-}
-
-int queue_size(queue_pool *pool, char *name) {
-    queue *q;
-    pthread_mutex_lock(&pool->mutex);
-    q = get_queue(pool, name);
-    pthread_mutex_unlock(&pool->mutex);
-
-    return q == NULL ? -1 : q_size(q);
 }
 
 void free_pool(queue_pool *pool) {

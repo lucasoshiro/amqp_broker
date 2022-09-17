@@ -25,20 +25,11 @@ typedef trie_node queue_pool;
 /* Initialize the queue pool. */
 void init_queue_pool(queue_pool *pool);
 
-/* Create a new empty queue in a queue pool. */
-void create_queue(queue_pool *pool, char *name);
+/* Create a new empty queue in a queue pool. Return a pointer to the new queue. */
+queue *create_queue(queue_pool *pool, char *name);
 
 /* Return a queue, given its name */
 queue *get_queue(queue_pool *pool, char *name);
-
-/* Add a value to a queue in a queue pool. */
-void enqueue_to(queue_pool *pool, char *name, char *body);
-
-/* Pop a value from a queue in a queue pool. */
-char *dequeue_from(queue_pool *pool, char *name);
-
-/* Return the size of a queue in a queue pool. */
-int queue_size(queue_pool *pool, char *name);
 
 /* Free a queue pool */
 void free_pool(queue_pool *pool);

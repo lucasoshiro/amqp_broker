@@ -11,6 +11,7 @@ typedef struct {
     int connfd;
     int thread_id;
     shared_state *ss;
+    queue *current_queue;
     char recvline[MAXLINE];
     char sendline[MAXLINE];
     char current_queue_name[MAX_QUEUE_NAME];

@@ -87,7 +87,8 @@ void state_machine_main(int connfd, int thread_id, shared_state *ss) {
     connection_state cs = {
         .connfd = connfd,
         .thread_id = thread_id,
-        .ss = ss
+        .ss = ss,
+        .current_queue = NULL
     };
 
     cs.current_queue_name[0] = '\0';
@@ -384,9 +385,18 @@ static machine_state action_wait_functional(connection_state *cs) {
     case QUEUE:
         switch (method->header.method) {
         case QUEUE_DECLARE:
-            parse_queue_declare_args(method->arguments, cs->current_queue_name);
+            parse_queue_declare_args(
+                method->arguments,
+                cs->current_queue_name
+                );
+
+            cs->current_queue = create_queue(
+                &cs->ss->q_pool,
+                cs->current_queue_name
+                );
+
             log_queue_creation(cs->current_queue_name, cs);
-            create_queue(&cs->ss->q_pool, cs->current_queue_name);
+
             next_state = QUEUE_DECLARE_RECEIVED;
             break;
         }
@@ -396,11 +406,23 @@ static machine_state action_wait_functional(connection_state *cs) {
         switch (method->header.method) {
         case BASIC_PUBLISH:
             parse_basic_publish_args(method->arguments, cs->current_queue_name);
+
+            cs->current_queue = get_queue(
+                &cs->ss->q_pool,
+                cs->current_queue_name
+                );
+
             next_state = BASIC_PUBLISH_RECEIVED;
             break;
 
         case BASIC_CONSUME:
             parse_basic_consume_args(method->arguments, cs->current_queue_name);
+
+            cs->current_queue = get_queue(
+                &cs->ss->q_pool,
+                cs->current_queue_name
+                );
+
             next_state = BASIC_CONSUME_RECEIVED;
             break;
         }
@@ -424,13 +446,13 @@ static machine_state action_wait_functional(connection_state *cs) {
 static machine_state action_queue_declare_received(connection_state *cs) {
     log_state("QUEUE DECLARE RECEIVED", cs);
 
-    int q_size = queue_size(&cs->ss->q_pool, cs->current_queue_name);
+    int size = q_size(cs->current_queue);
 
     send_queue_declare_ok(
         cs,
         1,                      /* TODO: CHANGE IT!!! */
         cs->current_queue_name,
-        q_size,
+        size,
         0                       /* TODO: CHANGE IT!!! */
         );
 
@@ -492,7 +514,15 @@ static machine_state action_wait_publish_content(connection_state *cs) {
         case BASIC:
             switch (method->header.method) {
             case BASIC_PUBLISH:
-                parse_basic_publish_args(method->arguments, cs->current_queue_name);
+                parse_basic_publish_args(
+                    method->arguments,
+                    cs->current_queue_name
+                    );
+
+                cs->current_queue = get_queue(
+                    &cs->ss->q_pool,
+                    cs->current_queue_name
+                    );
                 next_state = BASIC_PUBLISH_RECEIVED;
                 break;
             }
@@ -522,7 +552,7 @@ static machine_state action_wait_publish_content(connection_state *cs) {
     case BODY:
         body = read_body(cs, message_header.length);
 
-        enqueue_to(&cs->ss->q_pool, cs->current_queue_name, body);
+        q_enqueue(cs->current_queue, body);
         log_enqueue(cs, body);
 
         next_state = WAIT_PUBLISH_CONTENT;
@@ -542,11 +572,9 @@ static machine_state action_wait_publish_content(connection_state *cs) {
 }
 
 static machine_state action_basic_consume_received(connection_state *cs) {
-    queue *q;
     log_state("BASIC CONSUME RECEIVED", cs);
 
-    q = get_queue(&cs->ss->q_pool, cs->current_queue_name);
-    q_add_subscriber(q, cs->thread_id);
+    q_add_subscriber(cs->current_queue, cs->thread_id);
 
     send_method(
         cs,
@@ -562,12 +590,10 @@ static machine_state action_basic_consume_received(connection_state *cs) {
 
 static machine_state action_wait_value_dequeue(connection_state *cs) {
     char *s;
-    queue *q;
 
     log_state("WAIT VALUE DEQUEUE", cs);
 
-    q = get_queue(&cs->ss->q_pool, cs->current_queue_name);
-    s = q_dequeue_rr(q, cs->thread_id);
+    s = q_dequeue_rr(cs->current_queue, cs->thread_id);
 
     strcpy(cs->recvline, s);
     free(s);
