@@ -44,7 +44,6 @@
 #include "config.h"
 #include "log.h"
 #include "state_machine.h"
-#include "shared.h"
 
 #define LISTENQ 1
 
@@ -53,7 +52,7 @@ typedef struct {
     pthread_t thread;
     int thread_id;
     int connfd;
-    shared_state *ss;
+    queue_pool *q_pool;
 } connection_thread;
 
 connection_thread threads[MAX_CONNECTIONS];
@@ -63,7 +62,7 @@ void *connection_thread_main(void *_thread) {
     connection_thread *thread = (connection_thread *) _thread;
 
     log_connection_accept(thread->thread_id, thread->connfd);
-    state_machine_main(thread->connfd, thread->thread_id, thread->ss);
+    state_machine_main(thread->connfd, thread->thread_id, thread->q_pool);
     close(thread->connfd);
     log_connection_close(thread->thread_id, thread->connfd);
 
@@ -81,10 +80,9 @@ int main (int argc, char **argv) {
     /* Informações sobre o socket (endereço e porta) ficam nesta struct */
     struct sockaddr_in servaddr;
 
-    shared_state ss;
+    queue_pool q_pool;
 
-
-    init_shared_state(&ss);
+    init_queue_pool(&q_pool);
     bzero(threads, MAX_CONNECTIONS * sizeof(connection_thread));
 
     if (argc != 2) {
@@ -172,7 +170,7 @@ int main (int argc, char **argv) {
         }
 
         thread->connfd = connfd;
-        thread->ss = &ss;
+        thread->q_pool = &q_pool;
         thread->thread_id = thread_count;
 
         pthread_create(

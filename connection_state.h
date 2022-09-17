@@ -7,15 +7,15 @@
 
 #include <pthread.h>
 
-#include "shared.h"
 #include "config.h"
+#include "queue_pool.h"
 
 #define ERROR_MSG_SIZE 128
 
 typedef struct {
     int connfd;
     int thread_id;
-    shared_state *ss;
+    queue_pool *q_pool;
     queue *current_queue;
     char recvline[MAXLINE];
     char sendline[MAXLINE];

@@ -12,8 +12,8 @@ not.
 
 #pragma once
 
-#include "shared.h"
 #include <pthread.h>
+#include "queue_pool.h"
 
 /* State machine states. */
 typedef enum machine_state {
@@ -60,5 +60,5 @@ typedef enum machine_state {
 
 /* This is the main function for each connection. connfd is the file descriptor
    of the socket of the connection, thread_id is the id of the current thread
-   and ss is the shared state between the connections. */
-void state_machine_main(int connfd, int thread_id, shared_state *ss);
+   and q_pool is the queue pool shared between connections. */
+void state_machine_main(int connfd, int thread_id, queue_pool *q_pool);

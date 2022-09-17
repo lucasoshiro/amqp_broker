@@ -81,13 +81,13 @@ machine_state (*actions[NUM_STATES])(connection_state *) = {
     action_noop
 };
 
-void state_machine_main(int connfd, int thread_id, shared_state *ss) {
+void state_machine_main(int connfd, int thread_id, queue_pool *q_pool) {
     machine_state m = WAIT;
 
     connection_state cs = {
         .connfd = connfd,
         .thread_id = thread_id,
-        .ss = ss,
+        .q_pool = q_pool,
         .current_queue = NULL
     };
 
@@ -391,7 +391,7 @@ static machine_state action_wait_functional(connection_state *cs) {
                 );
 
             cs->current_queue = create_queue(
-                &cs->ss->q_pool,
+                cs->q_pool,
                 cs->current_queue_name
                 );
 
@@ -408,7 +408,7 @@ static machine_state action_wait_functional(connection_state *cs) {
             parse_basic_publish_args(method->arguments, cs->current_queue_name);
 
             cs->current_queue = get_queue(
-                &cs->ss->q_pool,
+                cs->q_pool,
                 cs->current_queue_name
                 );
 
@@ -419,7 +419,7 @@ static machine_state action_wait_functional(connection_state *cs) {
             parse_basic_consume_args(method->arguments, cs->current_queue_name);
 
             cs->current_queue = get_queue(
-                &cs->ss->q_pool,
+                cs->q_pool,
                 cs->current_queue_name
                 );
 
@@ -520,7 +520,7 @@ static machine_state action_wait_publish_content(connection_state *cs) {
                     );
 
                 cs->current_queue = get_queue(
-                    &cs->ss->q_pool,
+                    cs->q_pool,
                     cs->current_queue_name
                     );
                 next_state = BASIC_PUBLISH_RECEIVED;
