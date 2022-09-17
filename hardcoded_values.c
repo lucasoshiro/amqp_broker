@@ -52,11 +52,6 @@ const char CHANNEL_OPEN_OK_ARGS[] = "\x00\x00\x00\x00";
 
 const size_t CHANNEL_OPEN_OK_ARGS_SIZE = 4;
 
-const char QUEUE_DECLARE_OK_ARGS[] =
-    "\x07\x63\x68\x65\x65\x74\x6f\x73\x00\x00\x00\x00\x00\x00\x00\x00";
-
-const size_t QUEUE_DECLARE_OK_ARGS_SIZE = 16;
-
 const char BASIC_CONSUME_OK_ARGS[] = "\x00\x00\x00\x00\x00\x00\x00\x01\x00";
 
 const size_t BASIC_CONSUME_OK_ARGS_SIZE = 13;

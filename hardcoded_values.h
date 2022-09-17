@@ -23,9 +23,6 @@ extern const size_t ARGS_EMPTY_SIZE;
 extern const char CHANNEL_OPEN_OK_ARGS[];
 extern const size_t CHANNEL_OPEN_OK_ARGS_SIZE;
 
-extern const char QUEUE_DECLARE_OK_ARGS[];
-extern const size_t QUEUE_DECLARE_OK_ARGS_SIZE;
-
 extern const char BASIC_CONSUME_OK_ARGS[];
 extern const size_t BASIC_CONSUME_OK_ARGS_SIZE;
 
