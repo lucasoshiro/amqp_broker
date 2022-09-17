@@ -16,6 +16,7 @@ static trie_node *_get_trie_node(trie_node *root, char *name) {
     if (child == NULL) {
         child = malloc(sizeof(*child));
         bzero(child, sizeof(*child));
+        pthread_mutex_init(&child->mutex, NULL);
         root->children[first] = child;
     }
 
@@ -36,6 +37,7 @@ static void _free_trie_node(trie_node *root) {
 
 void init_queue_pool(queue_pool *pool) {
     bzero(pool, sizeof(*pool));
+    pthread_mutex_init(&pool->mutex, NULL);
 }
 
 queue *create_queue(queue_pool *pool, char *name) {

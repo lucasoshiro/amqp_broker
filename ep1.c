@@ -82,7 +82,9 @@ int main (int argc, char **argv) {
 
     queue_pool q_pool;
 
+    init_logging();
     init_queue_pool(&q_pool);
+    pthread_mutex_init(&thread_allocation_mutex, NULL);
     bzero(threads, MAX_CONNECTIONS * sizeof(connection_thread));
 
     if (argc != 2) {

@@ -7,6 +7,10 @@
 
 pthread_mutex_t log_mutex;
 
+void init_logging() {
+    pthread_mutex_init(&log_mutex, NULL);
+}
+
 void log_state(char *state_name, connection_state *cs) {
     #ifdef SHOULD_LOG
 
