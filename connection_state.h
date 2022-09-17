@@ -1,3 +1,8 @@
+/* Connection state.
+
+   This file defines the struct that holds the data of a connection.
+ */
+
 #pragma once
 
 #include <pthread.h>
