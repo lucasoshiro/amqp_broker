@@ -11,6 +11,7 @@ https://www.lua.org/pil/28.html).
 #include <pthread.h>
 
 #include "config.h"
+#include "round_robin.h"
 
 /* This is the node of a linked list, pointing to its parent. This node holds a
    variable-length string (body).
@@ -32,7 +33,9 @@ typedef struct q_node {
 typedef struct queue {
     char name[MAX_QUEUE_NAME];
     int size;
+    round_robin_scheduler rr;
     pthread_mutex_t mutex;
+    pthread_mutex_t new_msg_mutex;
     q_node *first_node;
     q_node *last_node;
 } queue;
@@ -46,8 +49,14 @@ void q_enqueue(queue *q, char *body);
 /* Pops a string from the end of the queue. If the queue is empty, return NULL. */
 char *q_dequeue(queue *q);
 
+/* Wait until the round of the thread, then pop the last value of the queue. */
+char *q_dequeue_rr(queue *q, int thread_id);
+
 /* Free a queue and its values. */
 void free_queue(queue *q);
 
 /* Size of a queue. */
 int q_size(queue *q);
+
+/* Subscribe the provided thread to a queue. */
+void q_add_subscriber(queue *q, int thread_id);

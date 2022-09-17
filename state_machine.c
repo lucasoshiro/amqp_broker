@@ -542,7 +542,11 @@ static machine_state action_wait_publish_content(connection_state *cs) {
 }
 
 static machine_state action_basic_consume_received(connection_state *cs) {
+    queue *q;
     log_state("BASIC CONSUME RECEIVED", cs);
+
+    q = get_queue(&cs->ss->q_pool, cs->current_queue_name);
+    q_add_subscriber(q, cs->thread_id);
 
     send_method(
         cs,
@@ -558,13 +562,13 @@ static machine_state action_basic_consume_received(connection_state *cs) {
 
 static machine_state action_wait_value_dequeue(connection_state *cs) {
     char *s;
+    queue *q;
 
     log_state("WAIT VALUE DEQUEUE", cs);
 
-    while (queue_size(&cs->ss->q_pool, cs->current_queue_name) == 0)
-        sleep(1);
+    q = get_queue(&cs->ss->q_pool, cs->current_queue_name);
+    s = q_dequeue_rr(q, cs->thread_id);
 
-    s = dequeue_from(&cs->ss->q_pool, cs->current_queue_name);
     strcpy(cs->recvline, s);
     free(s);
 

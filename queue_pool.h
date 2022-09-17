@@ -28,6 +28,9 @@ void init_queue_pool(queue_pool *pool);
 /* Create a new empty queue in a queue pool. */
 void create_queue(queue_pool *pool, char *name);
 
+/* Return a queue, given its name */
+queue *get_queue(queue_pool *pool, char *name);
+
 /* Add a value to a queue in a queue pool. */
 void enqueue_to(queue_pool *pool, char *name, char *body);
 

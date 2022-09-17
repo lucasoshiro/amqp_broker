@@ -5,7 +5,6 @@
 
 static trie_node *_get_trie_node(trie_node *, char *);
 static void _free_trie_node(trie_node *);
-static queue *get_queue(queue_pool *, char *);
 
 static trie_node *_get_trie_node(trie_node *root, char *name) {
     trie_node *child;
@@ -35,11 +34,6 @@ static void _free_trie_node(trie_node *root) {
     free(root);
 }
 
-static queue *get_queue(queue_pool *pool, char *name) {
-    trie_node *node = _get_trie_node(pool, name);
-    return node->q;
-}
-
 void init_queue_pool(queue_pool *pool) {
     bzero(pool, sizeof(*pool));
 }
@@ -54,6 +48,11 @@ void create_queue(queue_pool *pool, char *name) {
     pthread_mutex_lock(&node->mutex);
     if (node->q == NULL) node->q = new_queue(name);
     pthread_mutex_unlock(&node->mutex);
+}
+
+queue *get_queue(queue_pool *pool, char *name) {
+    trie_node *node = _get_trie_node(pool, name);
+    return node->q;
 }
 
 void enqueue_to(queue_pool *pool, char *name, char *body) {
