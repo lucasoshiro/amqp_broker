@@ -25,14 +25,14 @@ static void unparse_content_header_header(amqp_content_header_header, char *);
 static size_t fill_short_string(char *str, amqp_short_string *amqp_str) {
     size_t size = strlen(str);
     amqp_str->size = size;
-    strncpy(amqp_str->str, str, size);
+    strcpy(amqp_str->str, str);
     return size;
 }
 
 void parse_queue_declare_args(void *args, char *queue_name) {
     char *args_str = args;
     amqp_short_string *short_str = (void *) (args_str + 2); /* Drop ticket */
-    strncpy(queue_name, short_str->str, short_str->size);
+    memcpy(queue_name, short_str->str, short_str->size);
 
     queue_name[short_str->size] = '\0';
 }
