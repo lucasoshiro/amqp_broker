@@ -26,13 +26,16 @@ uint64_t swipe_endianness_64(uint64_t n) {
 
 size_t read_until(int fildes, void *buf, size_t size) {
     size_t sum = 0;
+    char *_buf = buf;
 
-    while(sum < size) {
-        size_t n = read(fildes, buf, size);
+    while (sum < size) {
+        size_t remaining = size - sum;
+        size_t n = read(fildes, _buf, remaining);
+
         if (n == 0) return 0;
-        buf = (char *) sum + n;
-        sum += n;
-    }
 
+        sum += n;
+        _buf += n;
+    }
     return sum;
 }
