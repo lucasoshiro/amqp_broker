@@ -159,13 +159,17 @@ static machine_state action_wait_start_ok(connection_state *cs) {
 
     if (method->header.class != CONNECTION ||
         method->header.method != CONNECTION_START_OK) {
-        strcpy(cs->error_msg, "Did not receive connection start ok");
+        sprintf(
+            cs->error_msg,
+            "Unexpected class %d method %d",
+            method->header.class,
+            method->header.method
+            );
         next_state = FAIL;
     }
     else
         next_state = START_OK_RECEIVED;
 
-    free(method);
     return next_state;
 }
 
@@ -208,7 +212,6 @@ static machine_state action_wait_tune_ok(connection_state *cs) {
     }
     else next_state = WAIT_OPEN_CONNECTION;
 
-    free(method);
     return next_state;
 }
 
@@ -238,7 +241,6 @@ static machine_state action_wait_open_connection(connection_state *cs) {
     else
         next_state = OPEN_CONNECTION_RECEIVED;
 
-    free(method);
     return next_state;
 }
 
@@ -316,7 +318,6 @@ static machine_state action_wait_open_channel(connection_state *cs) {
             );
     }
 
-    free(method);
     return next_state;
 }
 
@@ -438,8 +439,6 @@ static machine_state action_wait_functional(connection_state *cs) {
         next_state = FAIL;
     }
 
-    free(method);
-
     return next_state;
 }
 
@@ -545,8 +544,6 @@ static machine_state action_wait_publish_content(connection_state *cs) {
                 );
             next_state = FAIL;
         }
-
-        free(method);
         break;
 
     case BODY:
@@ -667,7 +664,6 @@ static machine_state action_wait_consume_ack(connection_state * cs) {
     else
         next_state = WAIT_VALUE_DEQUEUE;
 
-    free(method);
     return next_state;
 }
 

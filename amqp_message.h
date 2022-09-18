@@ -152,8 +152,8 @@ int read_protocol_header(connection_state *cs, amqp_protocol_header *header);
    by the argument header with its content. */
 int read_message_header(connection_state *cs, amqp_message_header *header);
 
-/* Read a "method" amqp message, malloc an amqp_method, copy the data from
-   the method to the amqp_method, then return a pointer to it.
+/* Read a "method" amqp message, copy and parse the data from the method to the
+   parsed buffer, then return a pointer to it.
 
    The length of the message (except its header) is required.
 */

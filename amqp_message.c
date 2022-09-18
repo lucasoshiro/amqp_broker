@@ -105,13 +105,10 @@ static void unparse_method_header(amqp_method_header header, char *s) {
     memcpy(s, &header, sizeof(amqp_method_header));
 }
 
-static amqp_method *parse_method(char *s, size_t n) {
+static amqp_method *parse_method(char *s, size_t n, amqp_method *method) {
     size_t header_size = sizeof(amqp_method_header);
-    amqp_method *method;
 
     if (n < header_size) return NULL;
-
-    method = malloc(n);
 
     memcpy(method, s, header_size + n - 1);
 
@@ -128,7 +125,7 @@ amqp_method *read_method(connection_state *cs, int length) {
     if ((n = read_until(cs->connfd, cs->recvline, length)) == 0)
         return NULL;
 
-    if ((method = parse_method(cs->recvline, n)) == NULL)
+    if ((method = parse_method(cs->recvline, n, (void *) cs->parsed)) == NULL)
         return NULL;
 
     if (read_until(cs->connfd, cs->recvline, 1) == 0)

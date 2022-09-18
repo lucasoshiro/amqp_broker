@@ -19,6 +19,7 @@ typedef struct {
     queue *current_queue;
     char recvline[MAXLINE];
     char sendline[MAXLINE];
+    char parsed[MAXLINE];
     char current_queue_name[MAX_QUEUE_NAME];
     char error_msg[ERROR_MSG_SIZE];
 } connection_state;
