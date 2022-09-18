@@ -552,7 +552,6 @@ static machine_state action_wait_publish_content(connection_state *cs) {
         log_enqueue(cs, body);
 
         next_state = WAIT_PUBLISH_CONTENT;
-        free(body);
         break;
 
     default:

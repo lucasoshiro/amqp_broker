@@ -302,7 +302,7 @@ void send_content_header(
 
 char *read_body(connection_state *cs, int length) {
     int n = read_until(cs->connfd, cs->recvline, length + 1);
-    char *body = malloc(length + 1);
+    char *body = cs->parsed;
     memcpy(body, cs->recvline, n);
     body[length] = '\0';
     return body;
