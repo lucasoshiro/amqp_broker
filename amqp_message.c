@@ -218,13 +218,14 @@ static void unparse_content_header_header(
     memcpy(s, &header, sizeof(header));
 }
 
-static amqp_content_header *parse_content_header(char *s, size_t n) {
+static amqp_content_header *parse_content_header(
+    char *s,
+    size_t n,
+    amqp_content_header *content_header
+    ) {
     size_t header_size = sizeof(amqp_content_header_header);
-    amqp_content_header *content_header;
 
     if (n < header_size) return NULL;
-
-    content_header = malloc(n);
 
     memcpy(content_header, s, header_size);
 
@@ -240,7 +241,7 @@ amqp_content_header *read_content_header(connection_state *cs, int length) {
     size_t n;
     amqp_content_header *header;
     n = read_until(cs->connfd, cs->recvline, length);
-    header = parse_content_header(cs->recvline, length);
+    header = parse_content_header(cs->recvline, length, (void *) cs->parsed);
     n = read_until(cs->connfd, cs->recvline, 1);
 
     return n == 0 ? NULL : header;

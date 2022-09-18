@@ -476,8 +476,7 @@ static machine_state action_wait_publish_content_header(connection_state *cs) {
     }
 
     content_header = read_content_header(cs, message_header.length);
-
-    free(content_header);
+    (void) content_header;
 
     return WAIT_PUBLISH_CONTENT;
 }
