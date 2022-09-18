@@ -3,6 +3,8 @@
 #include "queue.h"
 #include "util.h"
 
+static char *q_dequeue(queue *q, char *dest);
+
 queue *new_queue(char *name) {
     queue *q;
     q = malloc(sizeof(*q));
@@ -48,7 +50,7 @@ void q_enqueue(queue *q, char *body) {
     pthread_mutex_unlock(&q->mutex);
 }
 
-char *q_dequeue(queue *q) {
+static char *q_dequeue(queue *q, char *dest) {
     q_node *last;
     char *ret = NULL;
 
@@ -60,8 +62,7 @@ char *q_dequeue(queue *q) {
 
     last = q->last_node;
     if (last) {
-        int length = last->length;
-        ret = malloc(sizeof(char) * (1 + length));
+        ret = dest;
         strcpy(ret, last->body);
         q->last_node = last->parent;
         free(last);
@@ -80,7 +81,7 @@ char *q_dequeue(queue *q) {
     return ret;
 }
 
-char *q_dequeue_rr(queue *q, int thread_id) {
+char *q_dequeue_rr(queue *q, int thread_id, char *dest) {
     char *ret;
     round_robin_scheduler *rr = &q->rr;
     round_robin_node *node = &rr->subs[thread_id];
@@ -88,7 +89,7 @@ char *q_dequeue_rr(queue *q, int thread_id) {
     /* Wait until someone unlocks this! */
     pthread_mutex_lock(&node->mutex);
 
-    ret = q_dequeue(q);
+    ret = q_dequeue(q, dest);
 
     pthread_mutex_lock(&rr->mutex);
 

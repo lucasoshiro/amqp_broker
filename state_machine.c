@@ -584,14 +584,9 @@ static machine_state action_basic_consume_received(connection_state *cs) {
 }
 
 static machine_state action_wait_value_dequeue(connection_state *cs) {
-    char *s;
-
     log_state("WAIT VALUE DEQUEUE", cs);
 
-    s = q_dequeue_rr(cs->current_queue, cs->thread_id);
-
-    strcpy(cs->recvline, s);
-    free(s);
+    q_dequeue_rr(cs->current_queue, cs->thread_id, cs->recvline);
 
     log_dequeue(cs, cs->recvline);
 

@@ -46,11 +46,9 @@ queue *new_queue(char *name);
 /* Add a string to the end of beginning of the queue. */
 void q_enqueue(queue *q, char *body);
 
-/* Pops a string from the end of the queue. If the queue is empty, return NULL. */
-char *q_dequeue(queue *q);
-
-/* Wait until the round of the thread, then pop the last value of the queue. */
-char *q_dequeue_rr(queue *q, int thread_id);
+/* Wait until the round of the thread, then pop the last value of the queue to
+   the dest string. */
+char *q_dequeue_rr(queue *q, int thread_id, char *dest);
 
 /* Free a queue and its values. */
 void free_queue(queue *q);

@@ -184,9 +184,8 @@ void send_queue_declare_ok(
     uint32_t consumer_count
     );
 
-/* Read a "content header" message, malloc an amqp_content_header, copy the data
-   from the content header to the amqp_content_header, then return a pointer to
-   it.
+/* Read a "content header" message, copy the data from the content header to the
+   parsed buffer, then return a pointer to it.
 
    The length of the message (except its header) is required.
 */
@@ -204,8 +203,8 @@ void send_content_header(
     char *properties
     );
 
-/* Read a "body" amqp message, malloc a string, copy body payload to the string,
-   then return a pointer to the string.
+/* Read a "body" amqp message, copy body payload to the recvline, then return a
+   pointer to the recvline.
 
    The length of the body is required.
 */
