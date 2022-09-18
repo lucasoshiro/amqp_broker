@@ -169,7 +169,7 @@ void send_method(
     memcpy(cs->sendline, unparsed, header_size);
     memcpy(cs->sendline + header_size, arguments, args_size);
 
-    cs->sendline[header_size + args_size] = 0xce;
+    cs->sendline[header_size + args_size] = '\xce';
     write(cs->connfd, cs->sendline, header_size + args_size + 1);
 
     log_message_header('S', message_header, cs);
@@ -291,7 +291,7 @@ void send_content_header(
         message_header_size +
         header_header_size +
         properties_size
-        ] = 0xce;
+        ] = '\xce';
 
     write(
         cs->connfd,
@@ -327,7 +327,7 @@ void send_body(
 
     unparse_message_header(message_header, cs->sendline);
     memcpy(cs->sendline + message_header_size, payload, n);
-    cs->sendline[message_header_size + n] = 0xce;
+    cs->sendline[message_header_size + n] = '\xce';
 
     write(
         cs->connfd,
