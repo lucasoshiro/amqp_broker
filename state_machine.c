@@ -635,17 +635,20 @@ static machine_state action_wait_consume_ack(connection_state * cs) {
     log_state("WAIT CONSUME ACK", cs);
 
     if (read_message_header(cs, &message_header)) {
+        remove_subscriber(&cs->current_queue->rr, cs->thread_id);
         strcpy(cs->error_msg, "Error reading message header");
         return FAIL;
     }
 
     if ((method = read_method(cs, message_header.length)) == NULL) {
+        remove_subscriber(&cs->current_queue->rr, cs->thread_id);
         strcpy(cs->error_msg, "Error reading method");
         return FAIL;
     }
 
     if (method->header.class != BASIC ||
         method->header.method != BASIC_ACK) {
+        remove_subscriber(&cs->current_queue->rr, cs->thread_id);
             sprintf(
                 cs->error_msg,
                 "Unexpected class %d method %d",

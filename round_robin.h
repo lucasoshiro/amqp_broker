@@ -10,7 +10,8 @@
 #include "config.h"
 
 /* A round robin node, that represents a thread in a schueduler. The round
-   robin nodes holds a mutex and the thread_id of the next thread.
+   robin nodes holds a mutex and the thread_id of the previous and the next
+   thread.
 
    This way, this is kind of a linked list, but this does not hold a reference
    to the next node. This holds the thread_id of the next thread instead. The
@@ -21,6 +22,7 @@
    node.
 */
 typedef struct round_robin_node {
+    int prev;
     int next;
     pthread_mutex_t mutex;
 } round_robin_node;
@@ -42,3 +44,5 @@ void init_round_robin_scheduler(round_robin_scheduler *rr);
 
 /* Add a subscriber to a scheduler. */
 void add_subscriber(round_robin_scheduler *rr, int thread_id);
+
+void remove_subscriber(round_robin_scheduler *rr, int thread_id);
