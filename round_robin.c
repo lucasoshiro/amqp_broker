@@ -1,5 +1,7 @@
 #include "round_robin.h"
 
+#include <stdio.h>
+
 void init_round_robin_scheduler(round_robin_scheduler *rr) {
     rr->count = 0;
     rr->last = -1;
@@ -31,6 +33,9 @@ void add_subscriber(round_robin_scheduler *rr, int thread_id) {
     node->prev = rr->last;
     node->next = rr->first;
     node->thread_id = thread_id;
+
+    pthread_mutex_init(&node->round_mutex, NULL);
+    pthread_cond_init(&node->round_cond, NULL);
 
     rr->last = thread_id;
 
@@ -82,6 +87,8 @@ int next_thread(round_robin_scheduler *rr) {
     next = rr->subs[current].next;
 
     rr->current = next;
+
+    printf("CHANGING %d TO %d\n", current, next);
 
     pthread_mutex_unlock(&rr->mutex);
 

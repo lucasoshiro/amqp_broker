@@ -25,6 +25,8 @@ typedef struct round_robin_node {
     int prev;
     int next;
     int thread_id;
+    pthread_mutex_t round_mutex;
+    pthread_cond_t round_cond;
 } round_robin_node;
 
 /* The round robin scheduler. This holds a list of round robin nodes. For each
