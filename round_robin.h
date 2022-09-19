@@ -51,3 +51,5 @@ void add_subscriber(round_robin_scheduler *rr, int thread_id);
 void remove_subscriber(round_robin_scheduler *rr, int thread_id);
 
 int next_thread(round_robin_scheduler *rr);
+
+void wait_round(round_robin_scheduler *rr, int thread_id);

@@ -3,9 +3,8 @@
 #include "queue.h"
 #include "util.h"
 
-#include <stdio.h>
-
-static char *q_dequeue(queue *q, char *dest);
+static char *q_dequeue(queue *, char *);
+static void wait_msg(queue *);
 
 queue *new_queue(char *name) {
     queue *q;
@@ -77,42 +76,25 @@ static char *q_dequeue(queue *q, char *dest) {
     return ret;
 }
 
-char *q_dequeue_rr(queue *q, int thread_id, char *dest) {
-    char *ret;
-    round_robin_scheduler *rr = &q->rr;
-    round_robin_node *node = &rr->subs[thread_id];
-    round_robin_node *next;
-
-    /* Wait until it's the round of this thread */
-    printf("WAITING ROUND %d CURRENT %d\n", thread_id, rr->current);
-
-    if (rr->current != thread_id) {
-        pthread_mutex_lock(&node->round_mutex);
-        printf("WAITING ROUND COND %p\n", &node->round_cond);
-        pthread_cond_wait(&node->round_cond, &node->round_mutex);
-        printf("SIGNAL RECEIVED %d\n", thread_id);
-        pthread_mutex_unlock(&node->round_mutex);
-    }
-
-    printf("WAITING MSG %d\n", thread_id);
-
+static void wait_msg(queue *q) {
     if (q->size == 0) {
         pthread_mutex_lock(&q->new_msg_mutex);
         pthread_cond_wait(&q->new_msg_cond, &q->new_msg_mutex);
         pthread_mutex_unlock(&q->new_msg_mutex);
     }
+}
 
+char *q_dequeue_rr(queue *q, int thread_id, char *dest) {
+    char *ret;
+    round_robin_scheduler *rr = &q->rr;
+
+    /* Wait until it's the round of this thread */
+    wait_round(rr, thread_id);
+
+    /* Wait until it's there's a message to be consumed */
+    wait_msg(q);
     ret = q_dequeue(q, dest);
     next_thread(&q->rr);
-
-    /* Tell next that a message was dequeued. */
-    next = &rr->subs[node->next];
-    pthread_mutex_lock(&next->round_mutex);
-    printf("SIGNALING %p\n", &next->round_cond);
-    pthread_cond_broadcast(&next->round_cond);
-    pthread_mutex_unlock(&next->round_mutex);
-    printf("SIGNAL SENT %d TO %d\n", thread_id, node->next);
-
     return ret;
 }
 
