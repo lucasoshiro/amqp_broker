@@ -35,7 +35,8 @@ typedef struct queue {
     int size;
     round_robin_scheduler rr;
     pthread_mutex_t mutex;
-    pthread_mutex_t new_msg_mutex;
+    pthread_mutex_t cond_mutex;
+    pthread_cond_t cond;
     q_node *first_node;
     q_node *last_node;
 } queue;

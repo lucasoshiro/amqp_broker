@@ -1,11 +1,11 @@
 #include "round_robin.h"
-#include <stdio.h>
 
 void init_round_robin_scheduler(round_robin_scheduler *rr) {
     rr->count = 0;
     rr->last = -1;
     rr->first = -1;
-
+    rr->current = -1;
+    
     pthread_mutex_init(&rr->mutex, NULL);
 }
 
@@ -16,15 +16,10 @@ void add_subscriber(round_robin_scheduler *rr, int thread_id) {
 
     node = &rr->subs[thread_id];
 
-    pthread_mutex_init(&node->mutex, NULL);
-    pthread_mutex_lock(&node->mutex);
-
     if (rr->count == 0) {
         rr->first = thread_id;
         rr->last = thread_id;
-
-        /* Unlocking this subscribe, as it is the only one */
-        pthread_mutex_unlock(&node->mutex);
+        rr->current = thread_id;
     }
     else {
         round_robin_node *last = &rr->subs[rr->last];
@@ -35,6 +30,8 @@ void add_subscriber(round_robin_scheduler *rr, int thread_id) {
 
     node->prev = rr->last;
     node->next = rr->first;
+    node->thread_id = thread_id;
+
     rr->last = thread_id;
 
     (rr->count)++;
@@ -47,11 +44,6 @@ void remove_subscriber(round_robin_scheduler *rr, int thread_id) {
 
     node = &rr->subs[thread_id];
 
-    /* Wait until someone unlocks this. */
-    pthread_mutex_lock(&node->mutex);
-
-    printf("REMOVING %d %d %d!!!!\n", thread_id, node->prev, node->next);
-
     pthread_mutex_lock(&rr->mutex);
 
     prev_id = node->prev;
@@ -63,6 +55,9 @@ void remove_subscriber(round_robin_scheduler *rr, int thread_id) {
     prev->next = next_id;
     next->prev = prev_id;
     
+    if (rr->current == thread_id)
+        rr->current = next_id;
+
     if (rr->first == thread_id)
         rr->first = next_id;
 
@@ -75,8 +70,20 @@ void remove_subscriber(round_robin_scheduler *rr, int thread_id) {
         rr->first = rr->last = -1;
     }
 
-    printf("UNLOCKING %d!!!!\n", next_id);
-    pthread_mutex_unlock(&next->mutex);
-    printf("BYE!!!!\n");
     pthread_mutex_unlock(&rr->mutex);
+}
+
+int next_thread(round_robin_scheduler *rr) {
+    int current, next;
+
+    pthread_mutex_lock(&rr->mutex);
+
+    current = rr->current;
+    next = rr->subs[current].next;
+
+    rr->current = next;
+
+    pthread_mutex_unlock(&rr->mutex);
+
+    return next;
 }

@@ -3,6 +3,8 @@
 #include "queue.h"
 #include "util.h"
 
+#include <stdio.h>
+
 static char *q_dequeue(queue *q, char *dest);
 
 queue *new_queue(char *name) {
@@ -18,9 +20,8 @@ queue *new_queue(char *name) {
     q->size = 0;
 
     pthread_mutex_init(&q->mutex, NULL);
-    pthread_mutex_init(&q->new_msg_mutex, NULL);
-
-    pthread_mutex_lock(&q->new_msg_mutex);
+    pthread_mutex_init(&q->cond_mutex, NULL);
+    pthread_cond_init(&q->cond, NULL);
     return q;
 }
 
@@ -45,7 +46,9 @@ void q_enqueue(queue *q, char *body) {
     q->size += 1;
 
     /* Tell subscribers that there's a new messsage. */
-    pthread_mutex_unlock(&q->new_msg_mutex);
+    pthread_mutex_lock(&q->cond_mutex);
+    pthread_cond_broadcast(&q->cond);
+    pthread_mutex_unlock(&q->cond_mutex);
 
     pthread_mutex_unlock(&q->mutex);
 }
@@ -55,9 +58,6 @@ static char *q_dequeue(queue *q, char *dest) {
     char *ret = NULL;
 
     /* Wait until there's a message */
-    pthread_mutex_lock(&q->new_msg_mutex);
-    pthread_mutex_unlock(&q->new_msg_mutex);
-
     pthread_mutex_lock(&q->mutex);
 
     last = q->last_node;
@@ -73,10 +73,6 @@ static char *q_dequeue(queue *q, char *dest) {
         q->size -= 1;
     }
 
-    /* Avoid dequeing empty list */
-    if (q->size == 0)
-        pthread_mutex_lock(&q->new_msg_mutex);
-
     pthread_mutex_unlock(&q->mutex);
     return ret;
 }
@@ -84,19 +80,24 @@ static char *q_dequeue(queue *q, char *dest) {
 char *q_dequeue_rr(queue *q, int thread_id, char *dest) {
     char *ret;
     round_robin_scheduler *rr = &q->rr;
-    round_robin_node *node = &rr->subs[thread_id];
 
-    /* Wait until someone unlocks this! */
-    pthread_mutex_lock(&node->mutex);
+    /* Wait until it's the round of this thread */
+    while (rr->current != thread_id || q->size == 0) {
+        printf("AAAAA %d %d\n", thread_id, rr->current);
+        pthread_mutex_lock(&q->cond_mutex);
+        pthread_cond_wait(&q->cond, &q->cond_mutex);
+        pthread_mutex_unlock(&q->cond_mutex);
+        printf("BBBBB %d %d\n", thread_id, rr->current);
+    }
 
     ret = q_dequeue(q, dest);
+    next_thread(&q->rr);
 
-    pthread_mutex_lock(&rr->mutex);
+    /* Tell other subscribers that a message was dequeued. */
+    pthread_mutex_lock(&q->cond_mutex);
+    pthread_cond_broadcast(&q->cond);
+    pthread_mutex_unlock(&q->cond_mutex);
 
-    /* Unlock next subscriber */
-    pthread_mutex_unlock(&rr->subs[node->next].mutex);
-
-    pthread_mutex_unlock(&rr->mutex);
     return ret;
 }
 
