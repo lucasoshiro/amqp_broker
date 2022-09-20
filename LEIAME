@@ -170,7 +170,7 @@ O fluxo do consumo é o seguinte:
 
 ~~~
 *------------*                   *---------------*
-|    WAIT    | ----------------> | BASIC PUBLISH |
+|    WAIT    | ----------------> | BASIC CONSUME |
 | FUNCTIONAL | C: Basic Consume  |    RECEIVED   |
 *------------*                   *---------------*
                                          |
