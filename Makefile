@@ -1,6 +1,6 @@
 CC = gcc
 CFLAGS = -pthread -O3 -Wall -Wextra --pedantic
-FILES = $(shell git ls-files '*.c' '*.h' LEIAME Slides.pdf)
+FILES = $(shell git ls-files '*.c' '*.h' LEIAME Slides.pdf Makefile)
 
 ep1: ep1.c state_machine.o amqp_message.o log.o util.o queue_pool.o queue.o hardcoded_values.o round_robin.o
 
