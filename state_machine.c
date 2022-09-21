@@ -375,7 +375,6 @@ static machine_state action_wait_functional(connection_state *cs) {
             next_state = CLOSE_CHANNEL_RECEIVED;
             break;
         }
-        break;
 
     case CONNECTION:
         switch (method->header.method) {
@@ -383,7 +382,6 @@ static machine_state action_wait_functional(connection_state *cs) {
             next_state = CLOSE_CONNECTION_RECEIVED;
             break;
         }
-        break;
 
     case QUEUE:
         switch (method->header.method) {
@@ -429,7 +427,6 @@ static machine_state action_wait_functional(connection_state *cs) {
             next_state = BASIC_CONSUME_RECEIVED;
             break;
         }
-        break;
     }
 
     if (next_state == FAIL) {
