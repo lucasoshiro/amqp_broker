@@ -240,13 +240,17 @@ Cada fila também armazena seu nome, a quantidade de elementos, um scheduler par
 o round robin, e uma variável condicional para sinalizar a chegada de novas
 mensagens.
 
+A implementação está em queue.c e queue.h.
+
 ### Pool de filas
 
 O pool de filas mapeia cada nome de fila para uma fila. Como C nativamente não
 têm tabelas de símbolos, a implementação do pool foi feita usando uma trie.
 Tries são estruturas de dados em árvore que permitem a construção de tabelas de
 símbolos cujas chaves são strings. Além disso, tries conseguem indexar
-rapidamente uma string em O(n)l
+rapidamente uma string em O(n).
+
+A implementação está em queue_pool.c e queue_pool.h.
 
 ### Round robin
 
@@ -259,3 +263,5 @@ Toda vez que a fila recebe um valor, ela envia um sinal para a cada thread
 consumidora, já que é possível que a thread esteja esperando que fila tenha
 algum valor. Toda vez que uma thread consome um valor, ela envia um sinal
 para a proxima thread, avisando que chegou a vez dela.
+
+A implementação está em round_robin.c e round_robin.h.
